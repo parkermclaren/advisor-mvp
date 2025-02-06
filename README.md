@@ -1,36 +1,77 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# AI Academic Advisor
 
-## Getting Started
+An AI-powered academic advisor system for Endicott College using RAG (Retrieval-Augmented Generation) architecture.
 
-First, run the development server:
+## Project Structure
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+```
+advisor-mvp/
+├── rag_pipeline/         # Data pipeline for processing academic content
+│   ├── scrapers/        # Web scrapers for course catalog and requirements
+│   ├── processors/      # Content processing and chunking logic
+│   ├── embeddings/      # Vector embedding generation
+│   └── database/        # Supabase database management
+├── src/                 # Next.js application
+│   ├── app/            # App router components
+│   └── components/     # Reusable React components
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+## Features
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+- Course catalog exploration with semantic search
+- General Education requirements lookup
+- Program-specific requirements (Finance major)
+- Natural language query interface
+- Contextual course recommendations
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+## Tech Stack
 
-## Learn More
+- Next.js 13+ (App Router)
+- Supabase (Vector Store)
+- OpenAI (GPT-4 + Embeddings)
+- TailwindCSS
+- Puppeteer (Web Scraping)
 
-To learn more about Next.js, take a look at the following resources:
+## Setup
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+1. Clone the repository
+2. Install dependencies:
+   ```bash
+   npm install
+   ```
+3. Set up environment variables:
+   ```bash
+   cp .env.example .env.local
+   ```
+4. Run the development server:
+   ```bash
+   npm run dev
+   ```
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+## Data Pipeline
 
-## Deploy on Vercel
+To process academic content:
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+1. Run course catalog scraper:
+   ```bash
+   cd rag_pipeline
+   node test_course_catalog.js
+   ```
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+2. Process Gen Ed requirements:
+   ```bash
+   node test_gen_ed_pipeline.js
+   ```
+
+## Contributing
+
+1. Create a feature branch
+2. Make your changes
+3. Submit a pull request
+
+## Environment Variables
+
+Required environment variables:
+- `OPENAI_API_KEY`
+- `SUPABASE_URL`
+- `SUPABASE_KEY`
