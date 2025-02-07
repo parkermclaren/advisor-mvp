@@ -1,14 +1,12 @@
-const { scrapeCourseCatalog } = require('./scrapers/course_catalog');
+const { scrapeCatalog } = require('./scrapers/course_catalog');
 const { generateEmbedding } = require('./embeddings/vector_generator');
 const { insertChunks } = require('./database/supabase_manager');
 
 async function processBatch(courses) {
   try {
-    // Take only first 3 courses for testing
-    const testCourses = courses.slice(0, 3);
-    console.log('\nProcessing test batch of 3 courses:');
-    testCourses.forEach(course => {
-      console.log(`\nCourse: ${course.courseCode} - ${course.title}`);
+    console.log('\nProcessing batch of courses:');
+    courses.forEach(course => {
+      console.log(`\nCourse: ${course.code} - ${course.title}`);
       console.log(`Prerequisites: ${course.prerequisites.join(', ') || 'None'}`);
       console.log(`Credits: ${course.credits}`);
       console.log(`Terms: ${course.terms_offered.join(', ') || 'Not specified'}`);
@@ -16,9 +14,9 @@ async function processBatch(courses) {
     });
     
     // Convert courses to chunks
-    const chunks = testCourses.map(course => ({
-      title: `${course.courseCode} - ${course.title}`,
-      content: `${course.description}\n\nPrerequisites: ${course.prerequisites.join(', ') || 'None'}\nCredits: ${course.credits}\nTerms Offered: ${course.terms_offered.join(', ') || 'Not specified'}`,
+    const chunks = courses.map(course => ({
+      title: `${course.code} - ${course.title}`,
+      content: `Course: ${course.code} - ${course.title}\n\n${course.description}\n\nPrerequisites: ${course.prerequisites.join(', ') || 'None'}\nCredits: ${course.credits}\nTerms Offered: ${course.terms_offered.join(', ') || 'Not specified'}`,
       metadata: {
         ...course.metadata,
         prerequisites: course.prerequisites,
@@ -64,17 +62,30 @@ async function processBatch(courses) {
 
 async function main() {
   try {
-    console.log('Starting course catalog test scrape (first 3 courses only)...');
+    console.log('Starting full course catalog scrape...');
     
-    // Only process the first page
-    await scrapeCourseCatalog(async (pageCourses) => {
-      await processBatch(pageCourses);
-      // Exit after processing first page
-      process.exit(0);
-    });
+    // Scrape all courses using the print view
+    const courses = await scrapeCatalog();
     
+    if (courses.length > 0) {
+      console.log(`\nSuccessfully scraped ${courses.length} courses`);
+      
+      // Process courses in batches of 50 to avoid overwhelming the embedding API
+      const batchSize = 50;
+      for (let i = 0; i < courses.length; i += batchSize) {
+        const batch = courses.slice(i, i + batchSize);
+        console.log(`\nProcessing batch ${Math.floor(i/batchSize) + 1} of ${Math.ceil(courses.length/batchSize)}`);
+        await processBatch(batch);
+      }
+    } else {
+      console.error('No courses were scraped');
+      process.exit(1);
+    }
+    
+    console.log('\nScraping completed successfully');
+    process.exit(0);
   } catch (error) {
-    console.error('Error in test:', error);
+    console.error('Error in scraping:', error);
     process.exit(1);
   }
 }

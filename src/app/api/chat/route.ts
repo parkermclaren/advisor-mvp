@@ -56,25 +56,38 @@ export async function POST(req: Request) {
       const categoryMap = new Map()
       
       chunks?.forEach((chunk: any) => {
-        const category = chunk.metadata?.category || 'Uncategorized'
-        if (!categoryMap.has(category)) {
-          categoryMap.set(category, [])
+        // If no category, use the chunk type or an empty string to group similar chunks
+        const category = chunk.metadata?.category || chunk.metadata?.type || ''
+        if (category) {
+          if (!categoryMap.has(category)) {
+            categoryMap.set(category, [])
+          }
+          categoryMap.get(category).push({
+            content: chunk.content,
+            title: chunk.title,
+            similarity: chunk.similarity
+          })
+        } else {
+          // If no category or type, just add the content directly without a category header
+          categoryMap.set(chunk.title, [{
+            content: chunk.content,
+            title: chunk.title,
+            similarity: chunk.similarity
+          }])
         }
-        categoryMap.get(category).push({
-          content: chunk.content,
-          title: chunk.title,
-          similarity: chunk.similarity
-        })
       })
 
-      // Format context with clear category boundaries
+      // Format context with clear category boundaries, but only show category headers where they exist
       context = Array.from(categoryMap.entries())
         .map(([category, chunks]) => {
           const categoryContent = chunks
             .map((chunk: any) => chunk.content)
             .join('\n')
           
-          return `CATEGORY: ${category}\n${categoryContent}`
+          // Only show CATEGORY header if it's a real category
+          return category && category !== chunks[0].title
+            ? `CATEGORY: ${category}\n${categoryContent}`
+            : categoryContent
         })
         .join('\n\n---\n\n')
 

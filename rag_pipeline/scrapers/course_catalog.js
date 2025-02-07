@@ -1,103 +1,235 @@
 const puppeteer = require('puppeteer');
 
-async function scrapeCourseFromPopup(page, courseLink) {
+async function scrapeCourseFromPrintView(page, pageNum) {
   try {
-    // Click the course link to open popup
-    await courseLink.click();
+    const baseUrl = 'https://catalog.endicott.edu/content.php?catoid=46&navoid=2581&filter%5B27%5D=-1&filter%5B29%5D=&filter%5Bkeyword%5D=&filter%5B32%5D=1&filter%5Bcpage%5D=';
+    const urlSuffix = '&filter%5Bexact_match%5D=1&filter%5Bitem_type%5D=3&filter%5Bonly_active%5D=1&filter%5B3%5D=1&expand=1&print';
     
-    // Wait for popup content to load
-    await page.waitForSelector('.td_dark .coursepadding', { timeout: 5000 });
-    
-    // Extract course information
-    const courseInfo = await page.evaluate(() => {
-      const container = document.querySelector('.td_dark .coursepadding');
-      if (!container) return null;
+    console.log(`Navigating to page ${pageNum}...`);
+    await page.goto(`${baseUrl}${pageNum}${urlSuffix}`, {
+      waitUntil: 'networkidle0',
+      timeout: 60000
+    });
 
-      // Get course code and title
-      const titleElement = container.querySelector('h3');
-      const [code, ...titleParts] = titleElement.textContent.split('\u00A0-\u00A0');
-      const title = titleParts.join(' ').trim();
+    // Wait for course content to be visible
+    await page.waitForSelector('td.width', { timeout: 15000 });
 
-      // Get description and other details
-      const contentDiv = container.querySelector('div p:last-child');
-      const description = contentDiv ? contentDiv.textContent.trim() : '';
+    // Extract all courses
+    const courses = await page.evaluate(() => {
+      const courseElements = document.querySelectorAll('td.width');
+      return Array.from(courseElements).map(courseElem => {
+        try {
+          // Get the course title element
+          const titleElem = courseElem.querySelector('h3');
+          if (!titleElem) {
+            console.log('No h3 found in course element');
+        return null;
+      }
 
-      // Extract prerequisites
-      const prereqText = description.match(/Prerequisites & Notes.*?\n(.*?)\n/s);
-      const prerequisites = prereqText ? 
-        prereqText[1].replace(/[()]/g, '').split(',').map(p => p.trim()) : 
-        [];
+          // Split the title into code and name, handling non-breaking spaces
+          const titleText = titleElem.textContent.replace(/\u00A0/g, ' ').trim();
+          const titleParts = titleText.split(/\s+-\s+/);
+      if (titleParts.length !== 2) {
+            console.log('Invalid title format:', titleText);
+        return null;
+      }
 
-      // Extract credits
-      const creditsMatch = description.match(/\(Cr: (\d+)\)/);
-      const credits = creditsMatch ? parseInt(creditsMatch[1]) : null;
+      const code = titleParts[0].trim();
+      const title = titleParts[1].trim();
 
-      // Extract terms offered
-      const termsMatch = description.match(/^(FA|SP|SU)/);
-      const terms_offered = termsMatch ? [termsMatch[1]] : [];
+          // Get all text content after the hr element
+          const hr = courseElem.querySelector('hr');
+      if (!hr) {
+            console.log('No hr found in course element');
+        return null;
+      }
 
+          // First, let's get any term indicators that appear before the hr
+          const terms_offered = [];
+          let termText = '';
+          
+          // Look for term text between hr and the first p tag
+          const firstP = courseElem.querySelector('p');
+          if (firstP) {
+            let node = hr.nextSibling;
+            while (node && node !== firstP) {
+              if (node.nodeType === Node.TEXT_NODE || node.nodeName === 'STRONG') {
+                termText += node.textContent.trim() + ' ';
+              }
+              node = node.nextSibling;
+            }
+          }
+          
+          // Parse term indicators
+          termText = termText.toLowerCase().trim();
+          if (termText.includes('fa/sp')) terms_offered.push('Fall', 'Spring');
+          else if (termText.includes('fa e')) terms_offered.push('Fall Even Years');
+          else if (termText.includes('fa o')) terms_offered.push('Fall Odd Years');
+          else if (termText.includes('sp e')) terms_offered.push('Spring Even Years');
+          else if (termText.includes('sp o')) terms_offered.push('Spring Odd Years');
+          else if (termText.includes('fa')) terms_offered.push('Fall');
+          else if (termText.includes('sp')) terms_offered.push('Spring');
+
+          // Get description and prerequisites
+      let description = '';
+          let prereqText = '';
+          let isPrereq = false;
+
+          // First, get all text nodes between hr and the first p tag
+      let node = hr.nextSibling;
+          while (node && (!firstP || node !== firstP)) {
+        if (node.nodeType === Node.TEXT_NODE) {
+              const text = node.textContent.trim();
+              if (text && !text.toLowerCase().includes('cr:') && !text.match(/^(fa|sp)/i)) {
+                description += ' ' + text;
+              }
+        }
+        node = node.nextSibling;
+      }
+
+          // Then process all p tags
+          const paragraphs = courseElem.querySelectorAll('p');
+          paragraphs.forEach(p => {
+            const text = p.textContent.trim();
+            
+            // Check if this paragraph contains prerequisites
+            if (text.includes('Prerequisites & Notes')) {
+              isPrereq = true;
+              // Extract everything after "Prerequisites & Notes"
+              const parts = text.split('Prerequisites & Notes');
+              if (parts.length > 1) {
+                // Add the text before "Prerequisites & Notes" to description if it's not just terms or credits
+                const beforePrereq = parts[0].trim();
+                if (beforePrereq && 
+                    !beforePrereq.includes('(Cr:') && 
+                    !beforePrereq.match(/^(fa|sp)/i)) {
+                  description += ' ' + beforePrereq;
+                }
+                // Get the prerequisites text
+                prereqText = parts[1].split('(Cr:')[0].trim();
+              }
+            } else if (text.includes('(Cr:')) {
+              // This is the last paragraph with credits
+              const parts = text.split('(Cr:');
+              const beforeCredits = parts[0].trim();
+              if (beforeCredits && !isPrereq && !beforeCredits.match(/^(fa|sp)/i)) {
+                description += ' ' + beforeCredits;
+              }
+            } else if (!isPrereq && !text.match(/^(fa|sp)/i)) {
+              // This is part of the description (excluding term indicators)
+              description += ' ' + text;
+            }
+          });
+
+      // Clean up description
+          description = description
+        .replace(/\s+/g, ' ')  // Replace multiple spaces with single space
+            .replace(/\u00A0/g, ' ')  // Replace non-breaking spaces
+        .replace(/\(Cr:\s*\d+\)/, '') // Remove credits from description
+            .replace(/^\s*[.,]\s*/, '') // Remove leading periods or commas
+        .trim();
+
+          console.log('Final description:', description);
+
+          // Extract credits
+          const creditsMatch = courseElem.textContent.match(/\(Cr:\s*(\d+)\)/);
+          const credits = creditsMatch ? parseInt(creditsMatch[1]) : null;
+
+          // Parse prerequisites
+          const prerequisites = [];
+          if (prereqText) {
+            // Clean up the text
+            prereqText = prereqText.trim();
+            
+            // Handle various forms of instructor permission
+            if (prereqText.includes('Permission from Instructor') || 
+                prereqText.includes('Permission of Instructor') ||
+                prereqText.includes('Instructor Permission')) {
+              prerequisites.push('Permission from Instructor');  // Standardize to one format
+            }
+            
+            // Handle class status requirements
+            const statusMatch = prereqText.match(/(freshman|sophomore|junior|senior)(\s+class)?\s+status/i);
+            if (statusMatch) {
+              // Capitalize first letter for consistency
+              const status = statusMatch[1].charAt(0).toUpperCase() + statusMatch[1].slice(1).toLowerCase();
+              prerequisites.push(`${status} Class Status`);
+            }
+            
+            // Look for course codes (e.g. ART110, PSY100)
+            const courseMatches = prereqText.match(/[A-Z]{2,4}\s*\d{3}/g);
+            if (courseMatches) {
+              courseMatches.forEach(match => {
+                // Normalize format (add space between letters and numbers)
+                const normalized = match.replace(/([A-Z]+)(\d+)/, '$1 $2');
+                prerequisites.push(normalized);
+              });
+            }
+          }
+
+          // Remove duplicates while preserving order
+          const uniquePrereqs = [...new Set(prerequisites)];
+
+      // Extract department and course number
+      const [dept, courseNum] = code.split(' ');
+      
       return {
-        courseCode: code.trim(),
-        title: title,
-        description: description,
-        prerequisites: prerequisites.filter(p => p && p !== 'none'),
-        credits: credits,
-        terms_offered: terms_offered,
+        code,
+        title,
+        description,
+            prerequisites: uniquePrereqs,
+        credits,
+            terms_offered,
         metadata: {
           type: 'course',
-          department: code.split(' ')[0],
-          level: parseInt(code.split(' ')[1]) || 0,
+          department: dept,
+          level: parseInt(courseNum) || 0,
           source: 'Endicott Course Catalog'
         }
       };
+        } catch (error) {
+          console.log('Error processing course element:', error);
+      return null;
+    }
+      }).filter(course => course !== null);
     });
 
-    // Click somewhere else to close the popup
-    await page.click('body');
-    await page.waitForTimeout(500); // Small delay to ensure popup closes
+    console.log(`Successfully extracted ${courses.length} courses from page ${pageNum}`);
+    return courses;
 
-    return courseInfo;
   } catch (error) {
-    console.error(`Error scraping course popup:`, error);
-    return null;
-  }
-}
-
-async function scrapeCoursePage(page, pageNum) {
-  console.log(`Scraping page ${pageNum}...`);
-  
-  // If not first page, navigate to the page
-  if (pageNum > 1) {
-    try {
-      await page.click(`a[aria-label="Page ${pageNum}"]`);
-      await page.waitForNavigation({ waitUntil: 'networkidle0' });
-    } catch (error) {
-      console.error(`Error navigating to page ${pageNum}:`, error);
+    console.error(`Error scraping courses from page ${pageNum}:`, error);
       return [];
     }
   }
 
-  // Get all course links on the page
-  const courseLinks = await page.$$('a.preview_td');
-  console.log(`Found ${courseLinks.length} courses on page ${pageNum}`);
+async function getNumberOfPages(page) {
+  try {
+    await page.goto('https://catalog.endicott.edu/content.php?catoid=46&navoid=2581&filter%5B27%5D=-1&filter%5B29%5D=&filter%5Bkeyword%5D=&filter%5B32%5D=1&filter%5Bcpage%5D=1&filter%5Bexact_match%5D=1&filter%5Bitem_type%5D=3&filter%5Bonly_active%5D=1&filter%5B3%5D=1&expand=1&print', {
+      waitUntil: 'networkidle0'
+    });
 
-  const courses = [];
-  for (let i = 0; i < courseLinks.length; i++) {
-    try {
-      console.log(`Processing course ${i + 1} of ${courseLinks.length} on page ${pageNum}`);
-      const courseInfo = await scrapeCourseFromPopup(page, courseLinks[i]);
-      if (courseInfo) {
-        courses.push(courseInfo);
-      }
-    } catch (error) {
-      console.error(`Error processing course ${i + 1}:`, error);
-    }
+    // Get the total number of pages
+    const pageCount = await page.evaluate(() => {
+      const pageLinks = document.querySelectorAll('a[aria-label^="Page"]');
+      let maxPage = 1;
+      pageLinks.forEach(link => {
+        const pageNum = parseInt(link.textContent);
+        if (!isNaN(pageNum) && pageNum > maxPage) {
+          maxPage = pageNum;
+        }
+      });
+      return maxPage;
+    });
+
+    return pageCount;
+  } catch (error) {
+    console.error('Error getting page count:', error);
+    throw error;
   }
-
-  return courses;
 }
 
-async function scrapeCourseCatalog(onPageScraped = null) {
+async function scrapeCatalog() {
   const browser = await puppeteer.launch({ 
     headless: "new",
     args: [
@@ -110,37 +242,31 @@ async function scrapeCourseCatalog(onPageScraped = null) {
     ]
   });
   
-  const page = await browser.newPage();
-  await page.setDefaultNavigationTimeout(60000);
-  
-  const allCourses = [];
-  
   try {
-    // Navigate to the first page
-    await page.goto('https://catalog.endicott.edu/content.php?catoid=46&navoid=2581', { 
-      waitUntil: 'networkidle0',
-      timeout: 60000
-    });
+    const page = await browser.newPage();
     
-    // Scrape all 18 pages
-    for (let pageNum = 1; pageNum <= 18; pageNum++) {
-      const pageCourses = await scrapeCoursePage(page, pageNum);
-      allCourses.push(...pageCourses);
+    // First, get the total number of pages
+    const totalPages = await getNumberOfPages(page);
+    console.log(`Found ${totalPages} pages to scrape`);
+    
+    // Scrape all pages
+    let allCourses = [];
+    for (let pageNum = 1; pageNum <= totalPages; pageNum++) {
+      const coursesFromPage = await scrapeCourseFromPrintView(page, pageNum);
+      allCourses = allCourses.concat(coursesFromPage);
+      console.log(`Progress: ${pageNum}/${totalPages} pages (${allCourses.length} courses so far)`);
       
-      if (onPageScraped) {
-        await onPageScraped(pageCourses);
+      // Add a small delay between pages to be nice to the server
+      if (pageNum < totalPages) {
+        await new Promise(resolve => setTimeout(resolve, 2000));
       }
-      
-      console.log(`Completed page ${pageNum}. Total courses so far: ${allCourses.length}`);
     }
     
-  } catch (error) {
-    console.error('Error in course catalog scraping:', error);
+    console.log(`Completed scraping ${allCourses.length} courses from ${totalPages} pages`);
+    return allCourses;
   } finally {
     await browser.close();
   }
-  
-  return allCourses;
 }
 
-module.exports = { scrapeCourseCatalog };
+module.exports = { scrapeCatalog };
