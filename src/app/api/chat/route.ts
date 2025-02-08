@@ -1,6 +1,7 @@
 import { createClient } from '@supabase/supabase-js'
 import { NextResponse } from 'next/server'
 import OpenAI from 'openai'
+import { buildStudentContext } from '../../lib/contextBuilder'
 
 // Initialize Supabase client
 const supabaseUrl = process.env.SUPABASE_URL!
@@ -14,7 +15,7 @@ const openai = new OpenAI({
 
 export async function POST(req: Request) {
   try {
-    const { messages } = await req.json()
+    const { messages, studentName } = await req.json()
     const userMessage = messages[messages.length - 1].content
     console.log('User message:', userMessage)
 
@@ -32,67 +33,21 @@ export async function POST(req: Request) {
     const isSimpleQuery = simplePatterns.some(pattern => pattern.test(userMessage.trim()))
 
     let context = ''
+    let studentContext = ''
     
-    if (!isSimpleQuery) {
-      // Generate embeddings for the user's question
-      const embeddingResponse = await openai.embeddings.create({
-        model: "text-embedding-ada-002",
-        input: userMessage,
-      })
-      const embedding = embeddingResponse.data[0].embedding
-      console.log('Generated embedding length:', embedding.length)
-
-      // Search for relevant chunks in Supabase
-      const { data: chunks, error: matchError } = await supabase
-        .rpc('match_chunks', {
-          query_embedding: embedding,
-          match_threshold: 0.5,
-          match_count: 5
-        })
-      console.log('Matched chunks:', chunks)
-      if (matchError) console.error('Error matching chunks:', matchError)
-
-      // Organize chunks by category
-      const categoryMap = new Map()
-      
-      chunks?.forEach((chunk: any) => {
-        // If no category, use the chunk type or an empty string to group similar chunks
-        const category = chunk.metadata?.category || chunk.metadata?.type || ''
-        if (category) {
-          if (!categoryMap.has(category)) {
-            categoryMap.set(category, [])
-          }
-          categoryMap.get(category).push({
-            content: chunk.content,
-            title: chunk.title,
-            similarity: chunk.similarity
-          })
-        } else {
-          // If no category or type, just add the content directly without a category header
-          categoryMap.set(chunk.title, [{
-            content: chunk.content,
-            title: chunk.title,
-            similarity: chunk.similarity
-          }])
-        }
-      })
-
-      // Format context with clear category boundaries, but only show category headers where they exist
-      context = Array.from(categoryMap.entries())
-        .map(([category, chunks]) => {
-          const categoryContent = chunks
-            .map((chunk: any) => chunk.content)
-            .join('\n')
-          
-          // Only show CATEGORY header if it's a real category
-          return category && category !== chunks[0].title
-            ? `CATEGORY: ${category}\n${categoryContent}`
-            : categoryContent
-        })
-        .join('\n\n---\n\n')
-
-      console.log('Organized context being sent to GPT:', context)
+    // Get student context if a name is provided
+    if (studentName) {
+      try {
+        // Pass the user's message to the context builder if it's not a simple query
+        studentContext = await buildStudentContext(studentName, isSimpleQuery ? undefined : userMessage)
+        console.log('Built student context:', studentContext)
+      } catch (error) {
+        console.error('Error building student context:', error)
+      }
     }
+    
+    // We don't need the separate RAG search anymore since it's included in the enhanced search
+    // within buildStudentContext when there's a query
 
     // Get response from OpenAI
     const completion = await openai.chat.completions.create({
@@ -100,51 +55,35 @@ export async function POST(req: Request) {
       messages: [
         {
           role: "system",
-          content: `You are an AI academic advisor assistant for Endicott College's Finance program. Your role is to help students navigate their academic journey in a conversational and supportive way.
+          content: `You are an AI academic advisor assistant for Endicott College's Finance program. Your role is to help students navigate their academic journey by providing personalized guidance based on their academic history and progress.
 
-Key Behaviors:
-1. For vague or general queries:
-   - Ask clarifying questions first
-   - Don't dump all program information at once
-   - Example questions:
-     • "Are you looking for information about a specific year's requirements?"
-     • "Would you like to know about core courses, electives, or prerequisites?"
-     • "Are you planning your upcoming semester?"
+Key Responsibilities:
+1. Analyze student's academic history:
+   - CAREFULLY cross-reference completed courses against degree requirements
+   - For ANY question about requirements, check if courses the student has ALREADY TAKEN satisfy those requirements
+   - Pay special attention to courses that can satisfy multiple requirements
+   - Consider both course codes AND course titles when matching requirements
+   - If a course appears in a requirement list and the student has completed it, that requirement is satisfied
 
-2. Keep initial responses concise and focused:
-   - Don't overwhelm with too much information at once
-   - Break down complex information into digestible parts
-   - Wait for student to specify what they need
+2. Make personalized recommendations:
+   - Never recommend courses the student has already completed
+   - Filter out requirements they've already satisfied through completed courses
+   - Consider prerequisites and course sequencing
+   - Account for their academic standing and GPA
 
-3. RESPONSE FORMATTING:
-   - Use ## for main section headings with only one line break before them
+3. Provide clear requirement status:
+   - When asked about specific requirements, ALWAYS check their transcript first
+   - Explicitly state which completed course satisfies which requirement
+   - If a requirement is satisfied, specify which course satisfied it
+   - If not satisfied, list eligible courses they haven't taken yet
+
+4. Format responses clearly:
+   - Use ## for main section headings
    - Use bullet points with "-" for lists
-   - Format course codes consistently (e.g., "- ART 101 - Course Name")
-   - Keep spacing minimal but clear - use single line breaks between sections
-   - Use bold for emphasis on important points
-   - Avoid excessive line breaks between sections
+   - Bold important points
+   - Keep spacing minimal but clear
 
-4. CONTENT ORGANIZATION:
-   - Start with a brief introduction
-   - Group similar courses together under clear headings
-   - End with any relevant notes or recommendations
-   - Keep formatting compact while maintaining readability
-
-5. ACCURACY GUIDELINES:
-   - Only include information that's explicitly in the provided context
-   - Be precise with course codes and names
-   - Pay careful attention to which category/requirement each course fulfills
-   - When recommending courses, ONLY suggest courses that are explicitly listed under the requested requirement category
-   - If a course appears in multiple categories, specify which requirements it fulfills
-   - If something is unclear, say so and recommend consulting an advisor
-
-6. STUDENT-FRIENDLY LANGUAGE:
-   - Use a friendly, encouraging tone
-   - Acknowledge student questions
-   - Offer relevant follow-up suggestions
-   - Break down complex requirements into digestible parts
-
-${context ? `Use this information to provide guidance:\n\n${context}` : 'For this general query, focus on understanding the student\'s needs before providing specific program information.'}`
+${studentContext ? `\nCurrent Student Information:\n${studentContext}` : ''}`
         },
         ...messages
       ],

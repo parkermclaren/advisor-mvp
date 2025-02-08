@@ -1,8 +1,7 @@
-const path = require('path');
-require('dotenv').config({ path: path.resolve(__dirname, '../.env.local') });
+require('dotenv').config({ path: '../.env.local' });
 
 module.exports = {
-  supabaseUrl: process.env.SUPABASE_URL,
-  supabaseKey: process.env.SUPABASE_KEY,
+  SUPABASE_URL: process.env.SUPABASE_URL,
+  SUPABASE_SERVICE_KEY: process.env.SUPABASE_KEY,
   openaiApiKey: process.env.OPENAI_API_KEY
 }; 

@@ -13,9 +13,14 @@ interface Message {
 interface ChatInterfaceProps {
   startInChatMode?: boolean
   initialMessage?: string | null
+  studentName?: string
 }
 
-export default function ChatInterface({ startInChatMode = false, initialMessage = null }: ChatInterfaceProps) {
+export default function ChatInterface({ 
+  startInChatMode = false, 
+  initialMessage = null,
+  studentName = "Grenert, Max" // Default to our test student
+}: ChatInterfaceProps) {
   const [message, setMessage] = useState("")
   const [messages, setMessages] = useState<Message[]>([])
   const [isLoading, setIsLoading] = useState(false)
@@ -49,7 +54,8 @@ export default function ChatInterface({ startInChatMode = false, initialMessage 
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          messages: [...messages, { role: "user", content: userMessage }]
+          messages: [...messages, { role: "user", content: userMessage }],
+          studentName
         })
       })
 
