@@ -20,14 +20,6 @@ interface TranscriptTerm {
     courses: Course[];
 }
 
-interface TranscriptSummary {
-    student_name: string;
-    program: string;
-    cumulative_gpa: number;
-    earned_credits_cumulative: number;
-    attempted_credits_cumulative: number;
-}
-
 export async function buildStudentContext(studentName: string, userQuery?: string): Promise<string> {
     try {
         // Get the most recent transcript for this student
@@ -50,6 +42,9 @@ export async function buildStudentContext(studentName: string, userQuery?: strin
 
         if (termsError) throw termsError;
 
+        // Type assertion to ensure termsData is TranscriptTerm[]
+        const typedTermsData = termsData as unknown as TranscriptTerm[];
+
         // Build a comprehensive context string
         let context = `STUDENT CONTEXT\n\n`;
 
@@ -67,7 +62,7 @@ export async function buildStudentContext(studentName: string, userQuery?: strin
 
         // Add course history organized by term
         context += `COURSE HISTORY:\n`;
-        termsData.forEach((term) => {
+        typedTermsData.forEach((term) => {
             context += `\n${term.term_name}:\n`;
             context += `Term GPA: ${term.term_gpa}\n`;
             term.courses.forEach((course: Course) => {
@@ -77,7 +72,7 @@ export async function buildStudentContext(studentName: string, userQuery?: strin
 
         // If there's a user query, perform enhanced search for relevant courses and requirements
         if (userQuery) {
-            const completedCourses = termsData.flatMap(term => 
+            const completedCourses = typedTermsData.flatMap(term => 
                 term.courses.map((course: Course) => ({
                     course_code: course.course_code,
                     grade: course.grade
@@ -109,45 +104,4 @@ function getAcademicStanding(earnedCredits: number): string {
     if (earnedCredits < 60) return 'Sophomore';
     if (earnedCredits < 90) return 'Junior';
     return 'Senior';
-}
-
-function analyzeCompletedRequirements(terms: TranscriptTerm[]): Record<string, string[]> {
-    const requirements: Record<string, string[]> = {
-        'Core Business': [],
-        'Finance Major': [],
-        'General Education': [],
-        'Writing Requirements': []
-    };
-
-    // Flatten all courses from all terms
-    const allCourses = terms.flatMap(term => term.courses);
-
-    // Categorize courses based on their codes and titles
-    allCourses.forEach(course => {
-        const courseCode = course.course_code;
-        
-        // Business Core (BUS, ACC, ECN prefixes)
-        if (/^(BUS|ACC|ECN)/.test(courseCode)) {
-            requirements['Core Business'].push(`${courseCode}: ${course.course_title}`);
-        }
-
-        // Finance Major (specific BUS courses)
-        if (/^BUS/.test(courseCode) && 
-            (course.course_title.toLowerCase().includes('finance') || 
-             course.course_title.toLowerCase().includes('investment'))) {
-            requirements['Finance Major'].push(`${courseCode}: ${course.course_title}`);
-        }
-
-        // Writing Requirements (ENG courses)
-        if (/^ENG/.test(courseCode)) {
-            requirements['Writing Requirements'].push(`${courseCode}: ${course.course_title}`);
-        }
-
-        // General Education (based on course prefixes that aren't business-related)
-        if (/^(ART|MUS|ENG|SCI|HIST)/.test(courseCode)) {
-            requirements['General Education'].push(`${courseCode}: ${course.course_title}`);
-        }
-    });
-
-    return requirements;
 } 

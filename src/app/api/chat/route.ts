@@ -1,12 +1,6 @@
-import { createClient } from '@supabase/supabase-js'
 import { NextResponse } from 'next/server'
 import OpenAI from 'openai'
 import { buildStudentContext } from '../../lib/contextBuilder'
-
-// Initialize Supabase client
-const supabaseUrl = process.env.SUPABASE_URL!
-const supabaseKey = process.env.SUPABASE_KEY!
-const supabase = createClient(supabaseUrl, supabaseKey)
 
 // Initialize OpenAI
 const openai = new OpenAI({
@@ -32,7 +26,6 @@ export async function POST(req: Request) {
     // Check if this is a simple query that doesn't need RAG
     const isSimpleQuery = simplePatterns.some(pattern => pattern.test(userMessage.trim()))
 
-    let context = ''
     let studentContext = ''
     
     // Get student context if a name is provided

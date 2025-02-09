@@ -2,7 +2,7 @@
 
 import { Code, FileText, MoreHorizontal, PenLine, Send, Sparkles } from "lucide-react"
 import { useRouter } from "next/navigation"
-import { useEffect, useRef, useState } from "react"
+import { useCallback, useEffect, useRef, useState } from "react"
 import ReactMarkdown from 'react-markdown'
 
 interface Message {
@@ -36,16 +36,8 @@ export default function ChatInterface({
     { icon: MoreHorizontal, label: "More" },
   ]
 
-  // Process initial message if provided
-  useEffect(() => {
-    if (initialMessage && !initialMessageProcessed.current) {
-      initialMessageProcessed.current = true
-      handleMessage(initialMessage)
-    }
-  }, [initialMessage])
-
-  // Separate message handling logic
-  const handleMessage = async (userMessage: string) => {
+  // Separate message handling logic with useCallback
+  const handleMessage = useCallback(async (userMessage: string) => {
     setMessages(prev => [...prev, { role: "user", content: userMessage }])
     setIsLoading(true)
 
@@ -54,7 +46,7 @@ export default function ChatInterface({
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          messages: [...messages, { role: "user", content: userMessage }],
+          messages: messages.concat([{ role: "user", content: userMessage }]),
           studentName
         })
       })
@@ -72,7 +64,15 @@ export default function ChatInterface({
     } finally {
       setIsLoading(false)
     }
-  }
+  }, [messages, studentName])
+
+  // Process initial message if provided
+  useEffect(() => {
+    if (initialMessage && !initialMessageProcessed.current) {
+      initialMessageProcessed.current = true
+      handleMessage(initialMessage)
+    }
+  }, [initialMessage, handleMessage])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
