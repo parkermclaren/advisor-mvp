@@ -25,7 +25,7 @@ export default function OnboardingPage() {
                 Welcome to AI Advisor
               </h1>
               <p className="mt-4 text-lg text-deep-blue/80">
-                Let's take a moment to understand your academic journey and aspirations. The more details you share about your goals and interests, the better I can provide personalized course recommendations and guidance throughout your academic career.
+                Let&apos;s take a moment to understand your academic journey and aspirations. The more details you share about your goals and interests, the better I can provide personalized course recommendations and guidance throughout your academic career.
               </p>
               <button
                 onClick={() => setShowForm(true)}
