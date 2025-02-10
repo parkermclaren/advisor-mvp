@@ -1,11 +1,11 @@
 const { createClient } = require('@supabase/supabase-js');
 const config = require('../config');
 
-const supabase = createClient(config.supabaseUrl, config.supabaseKey);
+const supabase = createClient(config.SUPABASE_URL, config.SUPABASE_SERVICE_KEY);
 
 async function testConnection() {
   console.log('Testing Supabase connection...');
-  console.log('Using URL:', config.supabaseUrl);
+  console.log('Using URL:', config.SUPABASE_URL);
   try {
     // Try to select a single row from the table
     const { data, error } = await supabase

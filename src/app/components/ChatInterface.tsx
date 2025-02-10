@@ -98,7 +98,7 @@ export default function ChatInterface({
     <div className={`flex flex-col ${showChatLayout ? 'h-full' : ''}`}>
       {!showChatLayout ? (
         // Initial centered layout
-        <div className="space-y-6">
+        <div className="relative space-y-6 p-6">
           <form onSubmit={handleSubmit}>
             <div className="relative">
               <input
@@ -107,14 +107,14 @@ export default function ChatInterface({
                 value={message}
                 onChange={(e) => setMessage(e.target.value)}
                 placeholder="Ask your academic advisor..."
-                className="w-full px-4 py-3 bg-white border border-gray-200 rounded-full text-gray-800 placeholder-gray-500 focus:outline-none focus:ring-1 focus:ring-deep-blue focus:border-transparent text-base"
+                className="w-full px-6 py-5 bg-white/25 backdrop-blur-2xl border border-white/50 rounded-2xl text-gray-800 placeholder-gray-500/90 focus:outline-none focus:ring-2 focus:ring-white/40 focus:border-transparent text-lg shadow-[0_8px_32px_0_rgba(255,255,255,0.15)] backdrop-saturate-[1.3]"
               />
               <button
                 type="submit"
                 disabled={isLoading}
-                className="absolute right-3 top-1/2 -translate-y-1/2 p-1 text-gray-400 hover:text-deep-blue transition-colors disabled:opacity-50"
+                className="absolute right-4 top-1/2 -translate-y-1/2 p-2.5 text-deep-blue hover:text-deep-blue/80 transition-colors disabled:opacity-50 bg-white/50 hover:bg-white/60 backdrop-blur-xl rounded-xl shadow-sm"
               >
-                <Send className="w-4 h-4" />
+                <Send className="w-5 h-5" />
               </button>
             </div>
           </form>
@@ -123,7 +123,7 @@ export default function ChatInterface({
             {quickActions.map((action, index) => (
               <button
                 key={index}
-                className="flex items-center gap-2 text-base text-deep-blue hover:opacity-80"
+                className="flex items-center gap-2 text-base text-deep-blue/90 hover:text-deep-blue transition-colors"
               >
                 <action.icon className="w-4 h-4" />
                 <span>{action.label}</span>
@@ -135,16 +135,16 @@ export default function ChatInterface({
         // Chat layout
         <>
           {/* Scrollable chat area */}
-          <div className="flex-1 overflow-y-auto px-4 py-6 space-y-4">
+          <div className="relative flex-1 overflow-y-auto px-4 py-6 space-y-4">
             {messages.map((msg, index) => (
               <div
                 key={index}
-                className={`p-4 rounded-lg ${
+                className={`relative p-4 rounded-lg ${
                   msg.role === "user" 
-                    ? "bg-gray-50" 
-                    : "bg-deep-blue text-white"
-                } prose prose-base max-w-none ${
-                  msg.role === "assistant" ? "prose-invert" : ""
+                    ? "bg-deep-blue/80 backdrop-blur-xl border border-deep-blue/20 text-white shadow-[0_8px_32px_0_rgba(26,54,93,0.15)] backdrop-saturate-[1.3] inline-block" 
+                    : "bg-white/25 backdrop-blur-2xl border border-white/50 shadow-[0_8px_32px_0_rgba(255,255,255,0.15)] backdrop-saturate-[1.3]"
+                } prose prose-base ${
+                  msg.role === "user" ? "prose-invert" : "prose-gray"
                 }`}
               >
                 {msg.role === "user" ? (
@@ -155,14 +155,14 @@ export default function ChatInterface({
               </div>
             ))}
             {isLoading && (
-              <div className="p-4 bg-gray-50 rounded-lg animate-pulse">
+              <div className="p-4 bg-white/25 backdrop-blur-2xl border border-white/50 rounded-lg animate-pulse shadow-[0_8px_32px_0_rgba(255,255,255,0.15)] backdrop-saturate-[1.3]">
                 Advising...
               </div>
             )}
           </div>
           
           {/* Fixed input area at bottom */}
-          <div className="border-t border-gray-200 p-4 bg-white space-y-6">
+          <div className="relative border-t border-white/20 p-4 space-y-6">
             <form onSubmit={handleSubmit}>
               <div className="relative">
                 <input
@@ -171,14 +171,14 @@ export default function ChatInterface({
                   value={message}
                   onChange={(e) => setMessage(e.target.value)}
                   placeholder="Ask your academic advisor..."
-                  className="w-full px-4 py-3 bg-white border border-gray-200 rounded-full text-gray-800 placeholder-gray-500 focus:outline-none focus:ring-1 focus:ring-deep-blue focus:border-transparent text-base"
+                  className="w-full px-6 py-5 bg-white/25 backdrop-blur-2xl border border-white/50 rounded-2xl text-gray-800 placeholder-gray-500/90 focus:outline-none focus:ring-2 focus:ring-white/40 focus:border-transparent text-lg shadow-[0_8px_32px_0_rgba(255,255,255,0.15)] backdrop-saturate-[1.3]"
                 />
                 <button
                   type="submit"
                   disabled={isLoading}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 p-1 text-gray-400 hover:text-deep-blue transition-colors disabled:opacity-50"
+                  className="absolute right-4 top-1/2 -translate-y-1/2 p-2.5 text-deep-blue hover:text-deep-blue/80 transition-colors disabled:opacity-50 bg-white/50 hover:bg-white/60 backdrop-blur-xl rounded-xl shadow-sm"
                 >
-                  <Send className="w-4 h-4" />
+                  <Send className="w-5 h-5" />
                 </button>
               </div>
             </form>
@@ -187,7 +187,7 @@ export default function ChatInterface({
               {quickActions.map((action, index) => (
                 <button
                   key={index}
-                  className="flex items-center gap-2 text-base text-deep-blue hover:opacity-80"
+                  className="flex items-center gap-2 text-base text-deep-blue/90 hover:text-deep-blue transition-colors"
                 >
                   <action.icon className="w-4 h-4" />
                   <span>{action.label}</span>
