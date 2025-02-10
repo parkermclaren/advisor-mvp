@@ -23,7 +23,7 @@ export default function Dashboard() {
             {/* Main card with glassmorphism */}
             <div className="bg-white/25 backdrop-blur-xl border border-white/50 rounded-3xl p-8 shadow-[0_8px_32px_0_rgba(31,41,55,0.1)]">
               {/* Centered welcome message */}
-              <div className="text-center mb-12">
+              <div className="text-center mb-1">
                 <h1 className="text-6xl font-['Fraunces'] font-normal text-deep-blue tracking-[-0.02em] leading-tight">
                   Welcome, Max
                 </h1>

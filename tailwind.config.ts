@@ -1,5 +1,7 @@
 /** @type {import('tailwindcss').Config} */
-module.exports = {
+import type { Config } from 'tailwindcss'
+
+const config: Config = {
   darkMode: ["class"],
   content: [
     "./src/pages/**/*.{js,ts,jsx,tsx,mdx}",
@@ -54,20 +56,21 @@ module.exports = {
         DEFAULT: {
           css: {
             maxWidth: 'none',
-            color: 'inherit',
+            color: '#1A365D',
             a: {
-              color: 'inherit',
-              textDecoration: 'underline',
-              fontWeight: '500',
+              color: '#1A365D',
+              '&:hover': {
+                color: '#2C5282',
+              },
             },
             h1: {
-              color: 'inherit',
+              color: '#1A365D',
             },
             h2: {
-              color: 'inherit',
+              color: '#1A365D',
             },
             h3: {
-              color: 'inherit',
+              color: '#1A365D',
             },
             'h4,h5,h6': {
               color: 'inherit',
@@ -77,11 +80,14 @@ module.exports = {
               color: 'inherit'
             },
             code: {
-              color: 'inherit'
+              color: '#1A365D',
             },
             strong: {
-              color: 'inherit'
-            }
+              color: '#1A365D',
+            },
+            blockquote: {
+              color: '#1A365D',
+            },
           }
         }
       }
@@ -89,7 +95,10 @@ module.exports = {
   },
   plugins: [
     require("tailwindcss-animate"),
-    require('@tailwindcss/typography')
+    require('@tailwindcss/typography'),
+    require('tailwind-scrollbar')({ nocompatible: true }),
   ],
 }
+
+export default config
 

@@ -42,11 +42,25 @@ export async function buildStudentContext(studentName: string, userQuery?: strin
 
         if (termsError) throw termsError;
 
+        // Get student profile data
+        const { data: profileData, error: profileError } = await supabase
+            .from('student_profiles')
+            .select('*')
+            .eq('student_id', transcriptData.transcript_id)
+            .single();
+
         // Type assertion to ensure termsData is TranscriptTerm[]
         const typedTermsData = termsData as unknown as TranscriptTerm[];
 
         // Build a comprehensive context string
         let context = `STUDENT CONTEXT\n\n`;
+
+        // Add profile information if available
+        if (profileData && !profileError) {
+            context += `STUDENT PROFILE:\n`;
+            context += `- Career Goals: ${profileData.goals}\n`;
+            context += `- Academic Interests: ${profileData.interests.join(', ')}\n\n`;
+        }
 
         // Add summary information
         context += `ACADEMIC SUMMARY:\n`;
