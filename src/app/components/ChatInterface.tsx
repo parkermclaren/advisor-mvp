@@ -1,9 +1,11 @@
 "use client"
 
-import { Code, FileText, MoreHorizontal, PenLine, Send, Sparkles } from "lucide-react"
+import { Send } from "lucide-react"
 import { useRouter } from "next/navigation"
 import { useCallback, useEffect, useRef, useState } from "react"
 import ReactMarkdown from 'react-markdown'
+import ChatSuggestedPrompts from './ChatSuggestedPrompts'
+import SuggestedPrompts from './SuggestedPrompts'
 
 interface Message {
   role: "user" | "assistant"
@@ -24,31 +26,26 @@ export default function ChatInterface({
   const [message, setMessage] = useState("")
   const [messages, setMessages] = useState<Message[]>([])
   const [isLoading, setIsLoading] = useState(false)
-  const inputRef = useRef<HTMLInputElement>(null)
+  const [suggestions, setSuggestions] = useState<string[]>([])
+  const inputRef = useRef<HTMLTextAreaElement>(null)
   const messagesEndRef = useRef<HTMLDivElement>(null)
   const router = useRouter()
   const initialMessageProcessed = useRef(false)
-
-  const quickActions = [
-    { icon: Sparkles, label: "Course Suggestions" },
-    { icon: PenLine, label: "Degree Planning" },
-    { icon: Code, label: "Prerequisites" },
-    { icon: FileText, label: "Transcript Review" },
-    { icon: MoreHorizontal, label: "More" },
-  ]
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" })
   }
 
-  // Scroll to bottom when messages change
+  // Add useEffect to log suggestions state changes
   useEffect(() => {
-    scrollToBottom()
-  }, [messages])
+    console.log('Suggestions state updated:', suggestions)
+  }, [suggestions])
 
   // Separate message handling logic with useCallback
   const handleMessage = useCallback(async (userMessage: string) => {
-    setMessages(prev => [...prev, { role: "user", content: userMessage }])
+    // Clear suggestions when sending a new message
+    setSuggestions([])
+    setMessages(prev => [...prev, { role: "user" as const, content: userMessage }])
     setIsLoading(true)
 
     try {
@@ -56,21 +53,42 @@ export default function ChatInterface({
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          messages: messages.concat([{ role: "user", content: userMessage }]),
+          messages: messages.concat([{ role: "user" as const, content: userMessage }]),
           studentName
         })
       })
 
       if (!response.ok) throw new Error("Failed to get response")
 
-      const data = await response.json()
-      setMessages(prev => [...prev, { role: "assistant", content: data.message }])
+      const chatData = await response.json()
+      
+      // Get both chat response and suggestions in parallel
+      const suggestionsData = await fetch("/api/suggestions", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          messages: messages.concat([
+            { role: "user" as const, content: userMessage },
+            { role: "assistant" as const, content: chatData.content }
+          ])
+        })
+      }).then(r => r.json())
+
+      const newMessages = [...messages, 
+        { role: "user" as const, content: userMessage },
+        { role: "assistant" as const, content: chatData.content }
+      ]
+      
+      // Update both messages and suggestions simultaneously
+      setMessages(newMessages)
+      setSuggestions(suggestionsData.suggestions || [])
     } catch (error) {
       console.error("Error:", error)
       setMessages(prev => [...prev, { 
-        role: "assistant", 
+        role: "assistant" as const, 
         content: "I apologize, but I encountered an error. Please try again." 
       }])
+      setSuggestions([])
     } finally {
       setIsLoading(false)
     }
@@ -104,6 +122,27 @@ export default function ChatInterface({
   // Always show chat layout if startInChatMode is true
   const showChatLayout = startInChatMode || messages.length > 0
 
+  const handlePromptClick = (prompt: string) => {
+    setMessage(prompt)
+  }
+
+  // Add effect to handle textarea height adjustment
+  useEffect(() => {
+    if (inputRef.current) {
+      const textarea = inputRef.current as HTMLTextAreaElement
+      // Reset height first
+      textarea.style.height = 'auto'
+      // Then set to scrollHeight
+      const newHeight = Math.max(60, textarea.scrollHeight)
+      textarea.style.height = `${newHeight}px`
+    }
+  }, [message])
+
+  // Scroll to bottom when messages change
+  useEffect(() => {
+    scrollToBottom()
+  }, [messages])
+
   return (
     <div className={`flex flex-col ${showChatLayout ? 'h-full' : ''}`}>
       {!showChatLayout ? (
@@ -111,35 +150,44 @@ export default function ChatInterface({
         <div className="relative space-y-6 p-6">
           <form onSubmit={handleSubmit}>
             <div className="relative">
-              <input
+              <textarea
                 ref={inputRef}
-                type="text"
                 value={message}
-                onChange={(e) => setMessage(e.target.value)}
+                onChange={(e) => {
+                  setMessage(e.target.value)
+                  // Reset height first
+                  e.target.style.height = 'auto'
+                  // Then set to scrollHeight
+                  const newHeight = Math.max(60, e.target.scrollHeight)
+                  e.target.style.height = `${newHeight}px`
+                }}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' && !e.shiftKey) {
+                    e.preventDefault()
+                    handleSubmit(e)
+                  }
+                }}
                 placeholder="Ask your academic advisor..."
-                className="w-full px-6 py-5 bg-white/25 backdrop-blur-2xl border border-white/50 rounded-2xl text-gray-800 placeholder-gray-500/90 focus:outline-none focus:ring-2 focus:ring-white/40 focus:border-transparent text-lg shadow-[0_8px_32px_0_rgba(255,255,255,0.15)] backdrop-saturate-[1.3]"
+                rows={1}
+                className="w-full px-6 py-5 bg-white/25 backdrop-blur-2xl border border-white/50 
+                         rounded-2xl text-gray-800 placeholder-gray-500/90 focus:outline-none 
+                         focus:ring-2 focus:ring-white/40 focus:border-transparent text-lg 
+                         shadow-[0_8px_32px_0_rgba(255,255,255,0.15)] backdrop-saturate-[1.3]
+                         resize-none overflow-hidden min-h-[3.75rem] max-h-[20rem]"
               />
               <button
                 type="submit"
                 disabled={isLoading}
-                className="absolute right-4 top-1/2 -translate-y-1/2 p-2.5 text-deep-blue hover:text-deep-blue/80 transition-colors disabled:opacity-50 bg-white/50 hover:bg-white/60 backdrop-blur-xl rounded-xl shadow-sm"
+                className="absolute right-4 top-1/2 -translate-y-1/2 p-2.5 text-deep-blue 
+                         hover:text-deep-blue/80 transition-colors disabled:opacity-50 
+                         bg-white/50 hover:bg-white/60 backdrop-blur-xl rounded-xl shadow-sm"
               >
                 <Send className="w-5 h-5" />
               </button>
             </div>
           </form>
 
-          <div className="flex flex-wrap justify-center gap-x-6 gap-y-2">
-            {quickActions.map((action, index) => (
-              <button
-                key={index}
-                className="flex items-center gap-2 text-base text-deep-blue/90 hover:text-deep-blue transition-colors"
-              >
-                <action.icon className="w-4 h-4" />
-                <span>{action.label}</span>
-              </button>
-            ))}
-          </div>
+          <SuggestedPrompts onPromptClick={handlePromptClick} mode="static" />
         </div>
       ) : (
         // Chat layout with improved scrollbar and spacing
@@ -182,35 +230,49 @@ export default function ChatInterface({
             <div className="max-w-4xl mx-auto">
               <form onSubmit={handleSubmit}>
                 <div className="relative">
-                  <input
+                  <textarea
                     ref={inputRef}
-                    type="text"
                     value={message}
-                    onChange={(e) => setMessage(e.target.value)}
+                    onChange={(e) => {
+                      setMessage(e.target.value)
+                      // Reset height first
+                      e.target.style.height = 'auto'
+                      // Then set to scrollHeight
+                      const newHeight = Math.max(60, e.target.scrollHeight)
+                      e.target.style.height = `${newHeight}px`
+                    }}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter' && !e.shiftKey) {
+                        e.preventDefault()
+                        handleSubmit(e)
+                      }
+                    }}
                     placeholder="Ask your academic advisor..."
-                    className="w-full px-6 py-5 bg-white/25 backdrop-blur-2xl border border-white/50 rounded-2xl text-gray-800 placeholder-gray-500/90 focus:outline-none focus:ring-2 focus:ring-white/40 focus:border-transparent text-lg shadow-[0_8px_32px_0_rgba(255,255,255,0.15)] backdrop-saturate-[1.3]"
+                    rows={1}
+                    className="w-full px-6 py-5 bg-white/25 backdrop-blur-2xl border border-white/50 
+                             rounded-2xl text-gray-800 placeholder-gray-500/90 focus:outline-none 
+                             focus:ring-2 focus:ring-white/40 focus:border-transparent text-lg 
+                             shadow-[0_8px_32px_0_rgba(255,255,255,0.15)] backdrop-saturate-[1.3]
+                             resize-none overflow-hidden min-h-[3.75rem] max-h-[20rem]"
                   />
                   <button
                     type="submit"
                     disabled={isLoading}
-                    className="absolute right-4 top-1/2 -translate-y-1/2 p-2.5 text-deep-blue hover:text-deep-blue/80 transition-colors disabled:opacity-50 bg-white/50 hover:bg-white/60 backdrop-blur-xl rounded-xl shadow-sm"
+                    className="absolute right-4 top-1/2 -translate-y-1/2 p-2.5 text-deep-blue 
+                             hover:text-deep-blue/80 transition-colors disabled:opacity-50 
+                             bg-white/50 hover:bg-white/60 backdrop-blur-xl rounded-xl shadow-sm"
                   >
                     <Send className="w-5 h-5" />
                   </button>
                 </div>
               </form>
 
-              <div className="flex flex-wrap justify-center gap-x-6 gap-y-2 mt-6">
-                {quickActions.map((action, index) => (
-                  <button
-                    key={index}
-                    className="flex items-center gap-2 text-base text-deep-blue/90 hover:text-deep-blue transition-colors"
-                  >
-                    <action.icon className="w-4 h-4" />
-                    <span>{action.label}</span>
-                  </button>
-                ))}
-              </div>
+              {messages.length > 0 && !isLoading && suggestions.length > 0 && (
+                <ChatSuggestedPrompts 
+                  onPromptClick={handlePromptClick} 
+                  prompts={suggestions}
+                />
+              )}
             </div>
           </div>
         </>

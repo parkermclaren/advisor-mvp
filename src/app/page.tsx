@@ -1,5 +1,6 @@
 import ChatInterface from "./components/ChatInterface"
 import ProgressBar from "./components/ProgressBar"
+import { maxProgress } from './lib/studentData'
 
 export default function Dashboard() {
   return (
@@ -23,9 +24,9 @@ export default function Dashboard() {
             {/* Main card with glassmorphism */}
             <div className="bg-white/25 backdrop-blur-xl border border-white/50 rounded-3xl p-8 shadow-[0_8px_32px_0_rgba(31,41,55,0.1)]">
               {/* Centered welcome message */}
-              <div className="text-center mb-1">
+              <div className="text-center mb-0">
                 <h1 className="text-6xl font-['Fraunces'] font-normal text-deep-blue tracking-[-0.02em] leading-tight">
-                  Welcome, Max
+                  Welcome, {maxProgress.student_summary.name.split(' ')[0]}
                 </h1>
               </div>
 

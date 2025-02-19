@@ -4,6 +4,19 @@
 @tailwind components;
 @tailwind utilities;
 
+@keyframes slide {
+  from {
+    transform: translateX(0);
+  }
+  to {
+    transform: translateX(-50%);
+  }
+}
+
+.animate-slide-left {
+  animation: slide 120s linear infinite;
+}
+
 @layer base {
   :root {
     --background: 0 0% 100%;
@@ -57,6 +70,16 @@ body {
 
 ::-webkit-scrollbar-thumb:hover {
   background: #555;
+}
+
+/* Hide scrollbar while allowing scrolling */
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+
+.no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
 }
 
 /* Input autofill styles */
