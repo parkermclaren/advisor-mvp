@@ -20,7 +20,14 @@ function ErrorFallback({ error, resetErrorBoundary }: { error: Error, resetError
   )
 }
 
-export default function ChatWithParams() {
+interface ChatWithParamsProps {
+  chatId?: string;
+  isNewChat?: boolean;
+  onNewChatSubmit?: (message: string) => Promise<{ content: string; chat_id: string; }>;
+  isSidebarOpen?: boolean;
+}
+
+export default function ChatWithParams({ chatId, isNewChat, onNewChatSubmit, isSidebarOpen }: ChatWithParamsProps) {
   const searchParams = useSearchParams()
   const [initialMessage, setInitialMessage] = useState<string | null>(null)
 
@@ -37,7 +44,14 @@ export default function ChatWithParams() {
 
   return (
     <ErrorBoundary FallbackComponent={ErrorFallback}>
-      <ChatInterface startInChatMode={true} initialMessage={initialMessage} />
+      <ChatInterface 
+        startInChatMode={true}
+        initialMessage={initialMessage}
+        currentChatId={chatId}
+        isNewChat={isNewChat}
+        onNewChatSubmit={onNewChatSubmit}
+        isSidebarOpen={isSidebarOpen}
+      />
     </ErrorBoundary>
   )
 } 

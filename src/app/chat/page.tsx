@@ -1,9 +1,11 @@
 "use client"
 
-import Link from "next/link"
-import { Suspense } from "react"
+import { PanelLeftOpen, Plus } from "lucide-react"
+import { Suspense, useState } from "react"
 import { ErrorBoundary } from 'react-error-boundary'
+import ChatSidebar from "../components/ChatSidebar"
 import ChatWithParams from "../components/ChatWithParams"
+import ProfileMenu from "../components/ProfileMenu"
 
 function ErrorFallback({ error, resetErrorBoundary }: { error: Error, resetErrorBoundary: () => void }) {
   return (
@@ -23,6 +25,50 @@ function ErrorFallback({ error, resetErrorBoundary }: { error: Error, resetError
 }
 
 export default function ChatPage() {
+  const [currentChatId, setCurrentChatId] = useState<string>()
+  const [isNewChat, setIsNewChat] = useState(false)
+  const [isSidebarOpen, setIsSidebarOpen] = useState(true)
+
+  const handleChatSelect = (chatId: string) => {
+    setIsNewChat(false)
+    setCurrentChatId(chatId)
+  }
+
+  const handleNewChat = () => {
+    setCurrentChatId(undefined)
+    setIsNewChat(true)
+  }
+
+  const handleToggleSidebar = () => {
+    setIsSidebarOpen(!isSidebarOpen)
+  }
+
+  const handleNewChatSubmit = async (message: string) => {
+    // Immediately transition to chat mode
+    setIsNewChat(false)
+    
+    try {
+      const response = await fetch("/api/chat", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          messages: [{ role: "User", content: message }]
+        })
+      });
+
+      if (!response.ok) throw new Error("Failed to create chat");
+      
+      const data = await response.json();
+      if (data.chat_id) {
+        setCurrentChatId(data.chat_id)
+        return data // Return the full response data
+      }
+    } catch (error) {
+      console.error('Error creating new chat:', error)
+      throw error // Propagate error to ChatInterface
+    }
+  }
+
   return (
     <div className="min-h-screen relative bg-gradient-to-br from-deep-blue/25 via-deep-blue/15 to-deep-blue/30">
       {/* Multiple radial gradients for depth and distribution */}
@@ -33,31 +79,66 @@ export default function ChatPage() {
       <div className="fixed inset-0 bg-[radial-gradient(circle_at_10%_60%,rgba(76,175,80,0.08),transparent_50%)]" />
       
       {/* Content layer */}
-      <div className="relative">
-        {/* Header with back button */}
-        <header className="bg-white/25 backdrop-blur-xl border-b border-white/50 shadow-[0_8px_32px_0_rgba(31,41,55,0.1)]">
-          <div className="max-w-6xl mx-auto px-4 py-4 flex items-center justify-between">
-            <Link 
-              href="/" 
-              className="text-deep-blue hover:opacity-80 transition-opacity"
-            >
-              <span className="font-['Fraunces'] text-2xl">Academic Advisor</span>
-            </Link>
+      <div className="relative h-screen px-6">
+        <div className="flex h-full gap-6 overflow-hidden">
+          {/* Sidebar */}
+          <div className={`transition-all duration-300 ease-in-out ${
+            isSidebarOpen 
+              ? 'w-64 opacity-100 visible' 
+              : 'w-0 opacity-0 invisible -ml-6'
+          }`}>
+            <ChatSidebar 
+              currentChatId={currentChatId}
+              onChatSelect={handleChatSelect}
+              onNewChat={handleNewChat}
+              isOpen={isSidebarOpen}
+              onToggle={handleToggleSidebar}
+            />
           </div>
-        </header>
 
-        {/* Main chat area */}
-        <main className="max-w-4xl mx-auto px-4 py-6">
-          <div className="h-[calc(100vh-8rem)]">
-            <div className="h-full bg-white/25 backdrop-blur-xl border border-white/50 rounded-3xl shadow-[0_8px_32px_0_rgba(31,41,55,0.1)]">
+          {/* Main content area */}
+          <div className={`flex-1 relative h-[calc(100vh-3rem)] mt-6 transition-all duration-300 ease-in-out 
+                        ${!isSidebarOpen ? 'ml-0' : ''}`}>
+            {/* Top Bar with Sidebar Toggle when closed */}
+            {!isSidebarOpen && (
+              <div className="absolute top-4 left-4 z-50 flex items-center gap-2">
+                <button
+                  onClick={handleToggleSidebar}
+                  className="p-2 bg-white/25 backdrop-blur-xl border border-white/50 rounded-xl 
+                           shadow-[0_8px_32px_0_rgba(31,41,55,0.1)] hover:bg-white/30 transition-colors"
+                >
+                  <PanelLeftOpen className="w-5 h-5 text-deep-blue" />
+                </button>
+                <button
+                  onClick={handleNewChat}
+                  className="p-2 bg-white/25 backdrop-blur-xl border border-white/50 rounded-xl 
+                           shadow-[0_8px_32px_0_rgba(31,41,55,0.1)] hover:bg-white/30 transition-colors"
+                >
+                  <Plus className="w-5 h-5 text-deep-blue" />
+                </button>
+              </div>
+            )}
+
+            {/* Profile Menu */}
+            <div className="absolute top-4 right-4 z-50">
+              <ProfileMenu />
+            </div>
+
+            {/* Main chat area */}
+            <div className="h-full pt-8">
               <ErrorBoundary FallbackComponent={ErrorFallback}>
                 <Suspense fallback={<div className="p-8">Loading...</div>}>
-                  <ChatWithParams />
+                  <ChatWithParams 
+                    chatId={currentChatId}
+                    isNewChat={isNewChat}
+                    onNewChatSubmit={handleNewChatSubmit}
+                    isSidebarOpen={isSidebarOpen}
+                  />
                 </Suspense>
               </ErrorBoundary>
             </div>
           </div>
-        </main>
+        </div>
       </div>
     </div>
   )

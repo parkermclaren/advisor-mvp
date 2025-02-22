@@ -69,4 +69,20 @@ export interface ProgressData {
   student_summary: StudentSummary;
   current_term: Term;
   requirements: Requirement[];
+}
+
+export interface ChatSession {
+  chat_id: string;
+  user_id: string;
+  chat_name: string;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface ChatMessage {
+  message_id: number;
+  chat_id: string;
+  role: 'User' | 'AI';
+  content: string;
+  created_at: string;
 } 

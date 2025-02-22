@@ -36,7 +36,10 @@ For example, if the advisor suggested specific courses, ask about:
 - What skills they would develop
 - How they align with career goals
 
-Respond with ONLY a JSON array of strings, each string being a suggested follow-up question.`
+KEEP IN MIND: THESE ARE QUESTIONS FOR THE STUDENT TO ASK THE ADVISOR, NOT FOR THE ADVISOR TO ASK THE STUDENT.
+
+Format your response as a JSON array of strings, with each string being a suggested follow-up question. For example:
+["What are the prerequisites for BUS331?", "How does this course fit into my graduation timeline?", "Which semester would be best to take this course?"]`
         },
         ...messages,
         {
@@ -44,18 +47,22 @@ Respond with ONLY a JSON array of strings, each string being a suggested follow-
           content: "Generate exactly 3 follow-up questions based on the advisor's most recent response."
         }
       ],
-      temperature: 0.7,
-      response_format: { type: "json_object" }
+      temperature: 0.7
     })
 
     console.log('OpenAI Response:', response.choices[0].message.content);
     
-    // Parse the response and handle both 'questions' and 'suggestions' keys
-    const parsed = JSON.parse(response.choices[0].message.content || '{"questions": []}')
-    const suggestions = parsed.questions || parsed.suggestions || []
-    console.log('Parsed Suggestions:', suggestions);
+    // Parse the response and extract the array of questions
+    try {
+      const content = response.choices[0].message.content || '[]';
+      const suggestions = JSON.parse(content.trim());
+      console.log('Parsed Suggestions:', suggestions);
 
-    return NextResponse.json({ suggestions })
+      return NextResponse.json({ suggestions: Array.isArray(suggestions) ? suggestions : [] })
+    } catch (error) {
+      console.error('Error parsing suggestions:', error);
+      return NextResponse.json({ suggestions: [] })
+    }
   } catch (error) {
     console.error('Error in suggestions endpoint:', error)
     return NextResponse.json(

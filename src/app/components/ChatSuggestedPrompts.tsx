@@ -16,20 +16,29 @@ export default function ChatSuggestedPrompts({
 
   useEffect(() => {
     if (topRowRef.current) {
-      const scrollWidth = topRowRef.current.scrollWidth;
-      const animation = topRowRef.current.animate(
+      const element = topRowRef.current;
+      const scrollWidth = element.scrollWidth;
+      const animation = element.animate(
         [
           { transform: 'translateX(0)' },
           { transform: `translateX(-${scrollWidth/2}px)` }
         ],
         {
-          duration: 120000,
+          duration: 60000,
           iterations: Infinity,
-          easing: 'linear'
+          easing: 'linear',
+          fill: 'forwards'
         }
       );
 
-      return () => animation.cancel();
+      animation.play();
+
+      return () => {
+        animation.cancel();
+        if (element) {
+          element.style.transform = 'translateX(0)';
+        }
+      };
     }
   }, [prompts]);
 
@@ -48,6 +57,7 @@ export default function ChatSuggestedPrompts({
                   bg-white/20 hover:bg-white/30 rounded-xl transition-all 
                   duration-200 backdrop-blur-sm border border-white/10 
                   whitespace-nowrap transform hover:scale-105 mx-1"
+        style={{ willChange: 'transform' }}
       >
         {truncatedPrompt}
       </button>

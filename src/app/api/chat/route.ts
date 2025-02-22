@@ -25,12 +25,63 @@ interface QueryChunks {
   [key: string]: SearchChunk[];
 }
 
+// Helper function to generate chat name using GPT-4o-mini
+async function generateChatName(firstMessage: string): Promise<string> {
+  try {
+    const response = await openai.chat.completions.create({
+      model: "gpt-4o-mini",
+      messages: [
+        {
+          role: "system",
+          content: "Generate a very short, descriptive name for this chat based on the first message. The name should be at most 40 characters. Respond with ONLY the name, no quotes or explanation."
+        },
+        {
+          role: "user",
+          content: firstMessage
+        }
+      ],
+      temperature: 0.7,
+      max_tokens: 20
+    });
+
+    return response.choices[0].message.content || "New Chat";
+  } catch (error) {
+    console.error('Error generating chat name:', error);
+    return "New Chat";
+  }
+}
+
 export async function POST(req: Request) {
   try {
     console.log('\n=== Starting Chat Request ===')
-    const { messages } = await req.json()
+    const { messages, chat_id } = await req.json()
     const latestMessage = messages[messages.length - 1].content
     console.log('User Query:', latestMessage)
+
+    // Convert messages to OpenAI format (lowercase)
+    const openAiMessages = messages.map((msg: { role: string; content: string }) => ({
+      ...msg,
+      role: msg.role === 'User' ? 'user' : 'assistant'
+    }))
+
+    // If no chat_id is provided, create a new chat session
+    let currentChatId = chat_id
+    if (!currentChatId) {
+      // Create new chat session directly with Supabase instead of using fetch
+      const { data: newSession, error: sessionError } = await supabase
+        .from('chat_sessions')
+        .insert({
+          user_id: maxProgress.student_summary.id,
+          chat_name: await generateChatName(latestMessage),
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString()
+        })
+        .select()
+        .single();
+
+      if (sessionError) throw sessionError;
+      currentChatId = newSession.chat_id;
+    }
 
     // Generate base student context with full academic record
     console.log('\n=== Generating Student Context ===')
@@ -137,8 +188,7 @@ Respond with ONLY a JSON object containing a "queries" array of search queries t
 Focus on retrieving information about requirements the student hasn't completed yet.
 DO NOT include general analysis or explanation in your response.`
         },
-        // Include previous messages
-        ...messages.slice(-3), // Include last few messages for context
+        ...openAiMessages.slice(-3), // Use converted messages
         {
           role: "user",
           content: latestMessage
@@ -219,7 +269,7 @@ DO NOT include general analysis or explanation in your response.`
     console.log('Total context length:', studentContext.length + ragResults.length)
     
     const response = await openai.chat.completions.create({
-      model: "gpt-4o",
+      model: "gpt-4",
       messages: [
         {
           role: "system",
@@ -238,14 +288,6 @@ Key Behaviors:
    - Identify which requirements are marked as NOT_STARTED or IN_PROGRESS
    - Note any requirements marked as COMPLETED (to avoid recommending those)
 
-Then, examine the retrieved course lists:
-   - Look at ONLY the course lists provided in the "Retrieved Information" section below
-   - Each section starts with "Search Query:" followed by relevant information
-   - Pay attention to the relevance scores to prioritize more relevant information
-   - Match these available courses to the incomplete requirements identified above
-   - Think of what courses would be the best fit for the student given their goals and interests
-   - Do NOT recommend any courses that aren't explicitly listed in the retrieved chunks
-
 3. Make Smart Recommendations:
    - Never recommend courses the student has already completed
    - Filter out requirements they've already satisfied
@@ -257,6 +299,8 @@ Then, examine the retrieved course lists:
      * Stated career goals (e.g., venture capital, technology)
      * Academic interests
      * Skill development needs for their target career
+  - If the student asks for course recommendations, emphasize ALL the core requirements first, then the electives.
+  - If given the chunk ## Recommended Courses for the 2025 Spring Term, follow the structure of the chunk and recommend courses accordingly.
 
 4. Format Responses Clearly:
    - Use ## for main section headings
@@ -279,17 +323,51 @@ ${studentContext}
 Retrieved Information:
 ${ragResults}`
         },
-        ...messages
+        ...openAiMessages // Use converted messages
       ],
       temperature: 0.7,
       max_tokens: 1000
     })
 
+    // Save messages directly with Supabase instead of using fetch
+    const { error: userMessageError } = await supabase
+      .from('chat_messages')
+      .insert({
+        chat_id: currentChatId,
+        role: 'User',
+        content: latestMessage,
+        created_at: new Date().toISOString()
+      });
+
+    if (userMessageError) throw userMessageError;
+
+    const { error: aiMessageError } = await supabase
+      .from('chat_messages')
+      .insert({
+        chat_id: currentChatId,
+        role: 'AI',
+        content: response.choices[0].message.content,
+        created_at: new Date().toISOString()
+      });
+
+    if (aiMessageError) throw aiMessageError;
+
+    // Update chat session's updated_at timestamp
+    const { error: updateError } = await supabase
+      .from('chat_sessions')
+      .update({ updated_at: new Date().toISOString() })
+      .eq('chat_id', currentChatId);
+
+    if (updateError) throw updateError;
+
     console.log('\n=== Response Generated ===')
     console.log('Response length:', response.choices[0].message.content?.length || 0)
     console.log('Response preview:', response.choices[0].message.content?.substring(0, 100) + '...')
 
-    return NextResponse.json(response.choices[0].message)
+    return NextResponse.json({
+      ...response.choices[0].message,
+      chat_id: currentChatId
+    })
   } catch (error) {
     console.error('\n=== Error in Chat Endpoint ===')
     console.error('Full error:', error)
