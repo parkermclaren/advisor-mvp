@@ -1,7 +1,7 @@
 "use client"
 
 import { useSearchParams } from "next/navigation"
-import { useEffect, useState } from "react"
+import { Suspense, useEffect, useState } from "react"
 import { ErrorBoundary } from 'react-error-boundary'
 import ChatInterface from "./ChatInterface"
 
@@ -27,31 +27,42 @@ interface ChatWithParamsProps {
   isSidebarOpen?: boolean;
 }
 
-export default function ChatWithParams({ chatId, isNewChat, onNewChatSubmit, isSidebarOpen }: ChatWithParamsProps) {
+// Inner component that uses searchParams
+function ChatWithParamsContent({ chatId, isNewChat, onNewChatSubmit, isSidebarOpen }: ChatWithParamsProps) {
   const searchParams = useSearchParams()
   const [initialMessage, setInitialMessage] = useState<string | null>(null)
 
   useEffect(() => {
     try {
-      const message = searchParams.get('message')
-      if (message && !initialMessage) {
-        setInitialMessage(message)
+      if (searchParams) {
+        const message = searchParams.get('message')
+        if (message && !initialMessage) {
+          setInitialMessage(message)
+        }
       }
     } catch (error) {
-      console.error('Error processing search params:', error)
+      console.error('Error getting message from URL:', error)
     }
   }, [searchParams, initialMessage])
 
   return (
+    <ChatInterface 
+      startInChatMode={true}
+      initialMessage={initialMessage}
+      currentChatId={chatId}
+      isNewChat={isNewChat}
+      onNewChatSubmit={onNewChatSubmit}
+      isSidebarOpen={isSidebarOpen}
+    />
+  )
+}
+
+export default function ChatWithParams(props: ChatWithParamsProps) {
+  return (
     <ErrorBoundary FallbackComponent={ErrorFallback}>
-      <ChatInterface 
-        startInChatMode={true}
-        initialMessage={initialMessage}
-        currentChatId={chatId}
-        isNewChat={isNewChat}
-        onNewChatSubmit={onNewChatSubmit}
-        isSidebarOpen={isSidebarOpen}
-      />
+      <Suspense fallback={<div className="p-4">Loading chat...</div>}>
+        <ChatWithParamsContent {...props} />
+      </Suspense>
     </ErrorBoundary>
   )
 } 

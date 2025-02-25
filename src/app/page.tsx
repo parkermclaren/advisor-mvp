@@ -1,5 +1,6 @@
 import ChatInterface from "./components/ChatInterface"
 import ProgressBar from "./components/ProgressBar"
+import RecentChats from "./components/RecentChats"
 import { maxProgress } from './lib/studentData'
 
 export default function Dashboard() {
@@ -15,9 +16,9 @@ export default function Dashboard() {
       {/* Content layer */}
       <div className="relative">
         <div className="max-w-3xl mx-auto px-4 py-6">
-          <div className="max-w-2xl mx-auto">
+          <div className="max-w-2xl mx-auto space-y-8 mb-12">
             {/* Top status bar */}
-            <div className="mb-8">
+            <div>
               <ProgressBar />
             </div>
 
@@ -32,6 +33,14 @@ export default function Dashboard() {
 
               {/* Main chat interface */}
               <ChatInterface />
+            </div>
+
+            {/* Recent Chats Section */}
+            <div>
+              <h2 className="text-2xl font-['Fraunces'] font-normal text-deep-blue mb-4">
+                Recent Conversations
+              </h2>
+              <RecentChats />
             </div>
           </div>
         </div>

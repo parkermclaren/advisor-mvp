@@ -1,7 +1,8 @@
 "use client"
 
 import { PanelLeftOpen, Plus } from "lucide-react"
-import { Suspense, useState } from "react"
+import { useSearchParams } from 'next/navigation'
+import { Suspense, useEffect, useState } from "react"
 import { ErrorBoundary } from 'react-error-boundary'
 import ChatSidebar from "../components/ChatSidebar"
 import ChatWithParams from "../components/ChatWithParams"
@@ -24,10 +25,22 @@ function ErrorFallback({ error, resetErrorBoundary }: { error: Error, resetError
   )
 }
 
-export default function ChatPage() {
+// Wrap the chat page content in a client component that uses searchParams
+function ChatPageContent() {
   const [currentChatId, setCurrentChatId] = useState<string>()
   const [isNewChat, setIsNewChat] = useState(false)
   const [isSidebarOpen, setIsSidebarOpen] = useState(true)
+  const searchParams = useSearchParams()
+
+  useEffect(() => {
+    if (searchParams) {
+      const chatId = searchParams.get('id')
+      if (chatId) {
+        setCurrentChatId(chatId)
+        setIsNewChat(false)
+      }
+    }
+  }, [searchParams])
 
   const handleChatSelect = (chatId: string) => {
     setIsNewChat(false)
@@ -127,19 +140,25 @@ export default function ChatPage() {
             {/* Main chat area */}
             <div className="h-full pt-8">
               <ErrorBoundary FallbackComponent={ErrorFallback}>
-                <Suspense fallback={<div className="p-8">Loading...</div>}>
-                  <ChatWithParams 
-                    chatId={currentChatId}
-                    isNewChat={isNewChat}
-                    onNewChatSubmit={handleNewChatSubmit}
-                    isSidebarOpen={isSidebarOpen}
-                  />
-                </Suspense>
+                <ChatWithParams 
+                  chatId={currentChatId}
+                  isNewChat={isNewChat}
+                  onNewChatSubmit={handleNewChatSubmit}
+                  isSidebarOpen={isSidebarOpen}
+                />
               </ErrorBoundary>
             </div>
           </div>
         </div>
       </div>
     </div>
+  )
+}
+
+export default function ChatPage() {
+  return (
+    <Suspense fallback={<div className="p-8">Loading chat...</div>}>
+      <ChatPageContent />
+    </Suspense>
   )
 } 
