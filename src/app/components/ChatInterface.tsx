@@ -46,6 +46,43 @@ export default function ChatInterface({
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" })
   }
 
+  // Save suggestions to the database
+  const saveSuggestions = useCallback(async (chatId: string, suggestionsToSave: string[]) => {
+    if (!chatId || suggestionsToSave.length === 0) return
+    
+    try {
+      await fetch("/api/save-suggestions", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          chat_id: chatId,
+          suggestions: suggestionsToSave
+        })
+      })
+      console.log('Saved suggestions for chat:', chatId)
+    } catch (error) {
+      console.error("Error saving suggestions:", error)
+    }
+  }, [])
+
+  // Load suggestions from the database
+  const loadSuggestions = useCallback(async (chatId: string) => {
+    if (!chatId) return
+    
+    try {
+      const response = await fetch(`/api/suggestions?chat_id=${chatId}`)
+      if (!response.ok) return
+      
+      const data = await response.json()
+      if (data.suggestions && Array.isArray(data.suggestions)) {
+        console.log('Loaded suggestions for chat:', chatId, data.suggestions)
+        setSuggestions(data.suggestions)
+      }
+    } catch (error) {
+      console.error("Error loading suggestions:", error)
+    }
+  }, [])
+
   // Separate message handling logic with useCallback
   const handleMessage = useCallback(async (userMessage: string) => {
     // Clear suggestions when sending a new message
@@ -92,7 +129,14 @@ export default function ChatInterface({
       
       // Update both messages and suggestions simultaneously
       setMessages(newMessages)
-      setSuggestions(suggestionsData.suggestions || [])
+      const newSuggestions = suggestionsData.suggestions || []
+      setSuggestions(newSuggestions)
+      
+      // Save suggestions to the database if we have a chat ID
+      if (chatData.chat_id || localChatId) {
+        const chatIdToUse = chatData.chat_id || localChatId
+        saveSuggestions(chatIdToUse, newSuggestions)
+      }
     } catch (error) {
       console.error("Error:", error)
       setMessages(prev => [...prev, { 
@@ -103,7 +147,7 @@ export default function ChatInterface({
     } finally {
       setIsLoading(false)
     }
-  }, [messages, localChatId, studentName])
+  }, [messages, localChatId, studentName, saveSuggestions])
 
   // Load messages when a chat is selected
   const loadChatMessages = useCallback(async (chatId: string) => {
@@ -119,10 +163,13 @@ export default function ChatInterface({
       })))
       setLocalChatId(chatId)
       initialMessageProcessed.current = true  // Mark as processed to prevent regeneration
+      
+      // Load suggestions for this chat
+      loadSuggestions(chatId)
     } catch (error) {
       console.error('Error loading chat messages:', error)
     }
-  }, [])
+  }, [loadSuggestions])
 
   // Update localChatId and load messages when prop changes
   useEffect(() => {
@@ -172,6 +219,7 @@ export default function ChatInterface({
           { role: "assistant" as const, content: chatData.content }
         ]
         setMessages(newMessages)
+        setLocalChatId(chatData.chat_id)
 
         // Get suggestions for the new chat
         const suggestionsData = await fetch("/api/suggestions", {
@@ -180,7 +228,11 @@ export default function ChatInterface({
           body: JSON.stringify({ messages: newMessages })
         }).then(r => r.json())
 
-        setSuggestions(suggestionsData.suggestions || [])
+        const newSuggestions = suggestionsData.suggestions || []
+        setSuggestions(newSuggestions)
+        
+        // Save suggestions to the database
+        saveSuggestions(chatData.chat_id, newSuggestions)
       } catch (error) {
         console.error('Error submitting new chat:', error)
         setMessages(prev => [...prev, { 

@@ -1,9 +1,50 @@
+import { createClient } from '@supabase/supabase-js';
 import { NextResponse } from 'next/server';
 import OpenAI from 'openai';
 
 const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY
 })
+
+// Initialize Supabase client
+const supabase = createClient(
+  process.env.SUPABASE_URL!,
+  process.env.SUPABASE_KEY!
+)
+
+// GET endpoint to retrieve saved suggestions for a chat
+export async function GET(request: Request) {
+  try {
+    const { searchParams } = new URL(request.url);
+    const chat_id = searchParams.get('chat_id');
+
+    if (!chat_id) {
+      return NextResponse.json(
+        { error: 'Chat ID is required' },
+        { status: 400 }
+      );
+    }
+
+    // Get suggestions for the chat
+    const { data, error } = await supabase
+      .from('suggested_follow_ups')
+      .select('prompts')
+      .eq('chat_id', chat_id)
+      .maybeSingle();
+
+    if (error) throw error;
+
+    return NextResponse.json({ 
+      suggestions: data?.prompts || [] 
+    });
+  } catch (error) {
+    console.error('Error fetching suggestions:', error);
+    return NextResponse.json(
+      { error: 'Failed to fetch suggestions', suggestions: [] },
+      { status: 500 }
+    );
+  }
+}
 
 export async function POST(req: Request) {
   try {
