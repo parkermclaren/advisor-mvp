@@ -48,6 +48,7 @@ function generateContextualPrompts(): string[] {
 
   // Next term planning
   prompts.push(`Generate a comprehensive degree audit`)
+  prompts.push(`Build an optimized schedule for me for Spring 2025`)
   
   // Credits and graduation timeline
   const remainingCredits = 125 - student_summary.completed_credits

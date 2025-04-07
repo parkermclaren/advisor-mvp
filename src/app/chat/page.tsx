@@ -12,7 +12,7 @@ function ErrorFallback({ error, resetErrorBoundary }: { error: Error, resetError
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-50 p-4">
       <div className="text-center space-y-4">
-        <h2 className="text-xl font-semibold text-gray-900">Something went wrong with the chat!</h2>
+        <h2 className="text-xl font-['Ariane_Coachella'] font-normal text-gray-900">Something went wrong with the chat!</h2>
         <p className="text-gray-600">{error.message}</p>
         <button
           onClick={resetErrorBoundary}
@@ -83,13 +83,13 @@ function ChatPageContent() {
   }
 
   return (
-    <div className="min-h-screen relative bg-gradient-to-br from-deep-blue/25 via-deep-blue/15 to-deep-blue/30">
+    <div className="min-h-screen relative bg-gradient-to-br from-deep-blue/30 via-deep-blue/20 to-deep-blue/35">
       {/* Multiple radial gradients for depth and distribution */}
-      <div className="fixed inset-0 bg-[radial-gradient(circle_at_20%_20%,rgba(26,54,93,0.45),transparent_50%)]" />
-      <div className="fixed inset-0 bg-[radial-gradient(circle_at_80%_30%,rgba(26,54,93,0.3),transparent_50%)]" />
-      <div className="fixed inset-0 bg-[radial-gradient(circle_at_40%_80%,rgba(26,54,93,0.35),transparent_40%)]" />
-      <div className="fixed inset-0 bg-[radial-gradient(circle_at_90%_85%,rgba(76,175,80,0.1),transparent_45%)]" />
-      <div className="fixed inset-0 bg-[radial-gradient(circle_at_10%_60%,rgba(76,175,80,0.08),transparent_50%)]" />
+      <div className="fixed inset-0 bg-[radial-gradient(circle_at_20%_20%,rgba(26,54,93,0.55),transparent_50%)]" />
+      <div className="fixed inset-0 bg-[radial-gradient(circle_at_80%_30%,rgba(26,54,93,0.4),transparent_50%)]" />
+      <div className="fixed inset-0 bg-[radial-gradient(circle_at_40%_80%,rgba(26,54,93,0.45),transparent_40%)]" />
+      <div className="fixed inset-0 bg-[radial-gradient(circle_at_90%_85%,rgba(76,175,80,0.15),transparent_45%)]" />
+      <div className="fixed inset-0 bg-[radial-gradient(circle_at_10%_60%,rgba(76,175,80,0.12),transparent_50%)]" />
       
       {/* Content layer */}
       <div className="relative h-screen px-6">

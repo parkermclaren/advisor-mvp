@@ -3,9 +3,9 @@
 import { Send } from "lucide-react"
 import { useRouter } from "next/navigation"
 import { useCallback, useEffect, useRef, useState } from "react"
-import ReactMarkdown from 'react-markdown'
 import { ChatMessage } from "../lib/types"
 import ChatSuggestedPrompts from './ChatSuggestedPrompts'
+import CourseParser from './CourseParser'
 import SuggestedPrompts from './SuggestedPrompts'
 
 interface Message {
@@ -396,7 +396,7 @@ export default function ChatInterface({
                   {msg.role === "user" ? (
                     <div className="whitespace-pre-wrap">{msg.content}</div>
                   ) : (
-                    <ReactMarkdown>{msg.content}</ReactMarkdown>
+                    <CourseParser content={msg.content} isSidebarOpen={isSidebarOpen} />
                   )}
                 </div>
               ))}

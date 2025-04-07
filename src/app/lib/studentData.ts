@@ -543,7 +543,7 @@ const rawProgress = {
 
 export const maxProgress: ProgressData = {
   student_summary: {
-    id: "d290f1ee-6c54-4b01-90e6-d701748f0851",
+    id: "f7cf1831-9985-4588-ae20-3515eb82f8d9",
     name: "Max Grenert",
     major: "Finance",
     career_goals: [rawProgress.student_summary.career_goals],

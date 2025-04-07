@@ -88,7 +88,7 @@ Format your response as a JSON array of strings, with each string being a sugges
           content: "Generate exactly 3 follow-up questions based on the advisor's most recent response."
         }
       ],
-      temperature: 0.7
+      temperature: 0.4
     })
 
     console.log('OpenAI Response:', response.choices[0].message.content);

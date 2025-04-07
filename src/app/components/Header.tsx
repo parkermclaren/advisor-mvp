@@ -3,7 +3,11 @@ interface HeaderProps {
   }
   
   export default function Header({ name }: HeaderProps) {
-    return <h1 className="text-4xl font-bold mb-8 text-gray-800">Welcome, {name}</h1>
+    return (
+      <h1 className="text-4xl font-['Playfair_Display'] font-medium mb-8 text-gray-800 tracking-tight">
+        <span className="italic">Welcome</span>, {name}
+      </h1>
+    )
   }
   
   

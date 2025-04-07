@@ -71,7 +71,7 @@ Your response must be a valid JSON object with this structure:
 }
 
 IMPORTANT GUIDELINES FOR NEXT SEMESTER:
-1. Consider that the student MUST take their core courses
+1. Consider that the student MUST take their core courses (no need to explain why, as these are mandatory)
 2. Only recommend 1-2 additional courses that would create a balanced schedule
 3. Total credits (including core courses) should not exceed 15-16 for a manageable load
 4. If recommending a finance elective, pick the ONE that best aligns with their specific career goals and interests
@@ -80,7 +80,7 @@ IMPORTANT GUIDELINES FOR NEXT SEMESTER:
    - Build relevant skills for their field of interest
    - Offer strategic value beyond just fulfilling requirements
    - Provide unique perspectives valuable in their chosen career path
-6. For each recommendation, explain:
+6. For each elective or gen ed recommendation, explain:
    - Why this specific course is strategically valuable for their career goals
    - How it builds relevant skills for their intended career path
    - Why it makes sense to take it next semester specifically
@@ -154,7 +154,7 @@ STUDENT CONTEXT:
 - Current Term: ${maxProgress.current_term.term}
 - Next Registration Term: ${maxProgress.current_term.next_registration_term}
 
-REQUIRED CORE COURSES (Student MUST take these):
+REQUIRED CORE COURSES (Student MUST take these - no explanation needed as they are mandatory):
 ${maxProgress.requirements
   .filter(req => req.type === 'finance_core' && req.student_status.status === 'not_started')
   .map(req => `- ${req.id}: ${req.title} (${req.credits_required} credits)${req.year_level ? ` - Year ${req.year_level} requirement` : ''}`)
@@ -162,7 +162,7 @@ ${maxProgress.requirements
 
 STUDENT NEEDS:
 ${incomplete_requirements.financeElectivesNeeded > 0 ? 
-  `1. Finance Electives (${incomplete_requirements.financeElectivesNeeded} credits needed) - You MUST recommend 2-3 finance elective courses that align with venture capital and technology interests.` 
+  `1. Finance Electives (${incomplete_requirements.financeElectivesNeeded} credits needed) - You MUST recommend 2-3 finance elective courses that align with the student's career goals AND academic interests.` 
   : ''}
 ${incomplete_requirements.genEdCategoriesMissing.map((cat, i) => 
   `${incomplete_requirements.financeElectivesNeeded > 0 ? i + 2 : i + 1}. ${cat} (3 credits) - Choose from ${cat} courses below`
@@ -189,17 +189,19 @@ ${cat.courses.map(course => `- ${course.id}: ${course.title} (${course.credits} 
 `).join('\n')}
 
 REQUIREMENTS FOR YOUR RESPONSE:
-1. First, acknowledge the required core courses and explain their importance
-2. Then recommend 2-3 finance elective courses FIRST, focusing on venture capital and technology alignment
+1. First, acknowledge the required core courses (no need to explain why, as these are mandatory)
+2. Then recommend 2-3 finance elective courses FIRST, with a balanced mix of courses that align with:
+   - The student's career goals
+   - The student's academic interests
+   - Some courses should satisfy BOTH career goals and interests when possible
 3. Then recommend 2-3 courses for each remaining gen ed requirement
 4. You can ONLY recommend courses listed above
 5. You cannot recommend any already completed courses
 6. Total credits should not exceed 18 (including required core courses)
-7. For Finance Electives, prioritize courses related to:
-   - Technology (CSC courses, programming)
-   - Entrepreneurship (BUS354)
-   - Financial Analysis (BUS332, BUS337)
-   - Risk/Investment (BUS336, BUS355)
+7. For ALL elective and gen ed recommendations (NOT core courses), provide explanations that consider BOTH career goals AND academic interests
+   - Some recommendations should primarily align with career goals
+   - Some recommendations should primarily align with academic interests
+   - Some recommendations should align with both when possible
 
 Remember: ONLY use course IDs that are explicitly listed above. DO NOT make up course IDs.`;
 
@@ -350,27 +352,36 @@ export async function createRecommendationChunk(recommendations: Recommendation[
   
   // Required Courses Section
   content += `## Required Core Courses (${context.core_credits} credits)\n`;
+  content += `These courses are mandatory for your program and must be taken next semester:\n\n`;
   coreRecs.forEach(rec => {
     content += `- ${rec.course_id}: ${rec.metadata.title} (${rec.credits} credits)\n`;
   });
   content += '\n';
 
   // Additional Recommendations Section
-  content += `## Additional Course Options (Choose 1-2 courses)\n`;
+  content += `## Additional Course Options (Choose 1 course from each category)\n`;
 
   if (electiveRecs.length > 0) {
     content += `### Finance Elective Options\n`;
+    content += `Select ONE of the following finance elective courses:\n\n`;
     electiveRecs.forEach(rec => {
       content += `- ${rec.course_id}: ${rec.metadata.title} (${rec.credits} credits)\n`;
+      if (rec.reason) {
+        content += `  * ${rec.reason}\n`;
+      }
     });
     content += '\n';
   }
 
   if (genEdRecs.length > 0) {
     content += `### General Education Options\n`;
+    content += `Select ONE of the following general education courses:\n\n`;
     genEdRecs.forEach(rec => {
       content += `- ${rec.course_id}: ${rec.metadata.title} (${rec.credits} credits)\n`;
       content += `  * Fulfills: ${rec.metadata.category}\n`;
+      if (rec.reason) {
+        content += `  * ${rec.reason}\n`;
+      }
     });
     content += '\n';
   }

@@ -1,4 +1,36 @@
-@import url("https://fonts.googleapis.com/css2?family=Merriweather:wght@300;400;700&display=swap");
+@import url("https://fonts.googleapis.com/css2?family=Merriweather:wght@300;400;700&family=Playfair+Display:ital,wght@0,400;0,500;0,600;0,700;1,400;1,500;1,600;1,700&display=swap");
+
+@font-face {
+  font-family: 'Elika Gorica';
+  src: url('/fonts/Elika Gorica Regular/Elika Gorica Regular.ttf') format('truetype');
+  font-weight: normal;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Recoleta';
+  src: url('/fonts/Recoleta/Recoleta-RegularDEMO.otf') format('opentype');
+  font-weight: normal;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Ariane Coachella';
+  src: url('/fonts/Ariane-Coachella/ArianeCoachella-Regular.ttf') format('truetype');
+  font-weight: normal;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Ariane Coachella';
+  src: url('/fonts/Ariane-Coachella/ArianeCoachella-Italic.ttf') format('truetype');
+  font-weight: normal;
+  font-style: italic;
+  font-display: swap;
+}
 
 @tailwind base;
 @tailwind components;
@@ -96,5 +128,37 @@ input:-webkit-autofill:hover,
 input:-webkit-autofill:focus {
   -webkit-box-shadow: 0 0 0px 1000px #f9fafb inset;
   transition: background-color 5000s ease-in-out 0s;
+}
+
+/* Course button styling for clickable course references */
+.course-btn {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.375rem 0.75rem;
+  margin: 0.25rem 0;
+  background-color: rgba(255, 255, 255, 0.25);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.4);
+  border-radius: 0.75rem;
+  color: rgb(30, 64, 175);
+  cursor: pointer;
+  font-weight: 500;
+  transition: all 0.2s ease;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03);
+  position: relative;
+  text-decoration: none !important;
+}
+
+.course-btn:hover {
+  background-color: rgba(255, 255, 255, 0.35);
+  border-color: rgba(255, 255, 255, 0.5);
+  transform: translateY(-1px);
+  box-shadow: 0 6px 8px -2px rgba(0, 0, 0, 0.05), 0 3px 6px -2px rgba(0, 0, 0, 0.03);
+}
+
+.course-btn:active {
+  transform: translateY(0);
+  box-shadow: 0 2px 4px -1px rgba(0, 0, 0, 0.05);
 }
 
