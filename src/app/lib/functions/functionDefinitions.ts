@@ -59,7 +59,7 @@ export const functionDefinitions = [
     type: "function" as const,
     function: {
       name: "buildStudentSchedule",
-      description: "Build an optimized class schedule for the student based on their program requirements, completed courses, and schedule preferences.",
+      description: "Build a simple conflict-free class schedule for the student based on their program requirements. IMPORTANT: Your response MUST include the raw schedule data wrapped in a JSON code block BEFORE any text description, like this:\n```json\n{\"sections\": [...], \"total_credits\": 16}\n```\nAfter the JSON block, you can then provide a friendly description of the schedule.",
       parameters: {
         type: "object",
         properties: {

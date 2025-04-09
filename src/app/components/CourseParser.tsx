@@ -3,6 +3,7 @@
 import { createClient } from '@supabase/supabase-js';
 import React, { useEffect, useState } from 'react';
 import ReactMarkdown from 'react-markdown';
+import WeeklyScheduleView from './WeeklyScheduleView';
 
 // Initialize Supabase client
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || '';
@@ -30,8 +31,30 @@ interface CourseParserProps {
   isSidebarOpen?: boolean;
 }
 
+// Add CourseSection type to match WeeklyScheduleView
+type CourseSection = {
+  section_id: string;
+  course_id: string;
+  course_code: string;
+  course_title: string;
+  day_pattern: string;
+  start_time: string;
+  end_time: string;
+  credits: number;
+  requirement_type: string;
+  instructor: string;
+  location: string;
+};
+
+// Update Schedule type to use CourseSection
+type Schedule = {
+  sections: CourseSection[];
+  total_credits: number;
+};
+
 export default function CourseParser({ content, isSidebarOpen = true }: CourseParserProps) {
   const [activeCard, setActiveCard] = useState<CourseInfo | null>(null);
+  const [schedule, setSchedule] = useState<Schedule | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   
   // Effect to add course info to DOM and clean up when unmounted
@@ -44,6 +67,34 @@ export default function CourseParser({ content, isSidebarOpen = true }: CoursePa
       }
     };
   }, []);
+
+  useEffect(() => {
+    // Try to parse schedule data from the content
+    try {
+      const scheduleMatch = content.match(/```json\n([\s\S]*?)\n```/);
+      if (scheduleMatch) {
+        const scheduleData = JSON.parse(scheduleMatch[1]);
+        if (scheduleData.sections && Array.isArray(scheduleData.sections)) {
+          setSchedule({
+            sections: scheduleData.sections,
+            total_credits: scheduleData.total_credits
+          });
+        }
+      } else {
+        setSchedule(null);
+      }
+    } catch (error) {
+      console.error('Error parsing schedule:', error);
+      setSchedule(null);
+    }
+  }, [content]);
+
+  // Remove JSON schedule data from displayed content
+  const cleanedContent = React.useMemo(() => {
+    if (!content) return '';
+    // Remove the JSON code block from the content
+    return content.replace(/```json\n[\s\S]*?\n```/g, '');
+  }, [content]);
 
   // Effect to update course info when activeCard changes
   useEffect(() => {
@@ -367,7 +418,18 @@ export default function CourseParser({ content, isSidebarOpen = true }: CoursePa
   
   return (
     <div className="prose prose-gray prose-p:my-2">
-      <ReactMarkdown components={components}>{content}</ReactMarkdown>
+      {schedule && (
+        <div className="mb-6 not-prose">
+          <div className="mb-3 text-deep-blue">
+            <p>I've analyzed your course selections and created a schedule that optimizes your class times while avoiding conflicts. Here's your weekly schedule - you can hover over any course to see more details.</p>
+          </div>
+          <WeeklyScheduleView sections={schedule.sections} />
+          <div className="mt-2 text-sm text-deep-blue/80">
+            Total Credits: {schedule.total_credits}
+          </div>
+        </div>
+      )}
+      <ReactMarkdown components={components}>{cleanedContent}</ReactMarkdown>
       
       {isLoading && (
         <div 

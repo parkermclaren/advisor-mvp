@@ -120,11 +120,33 @@ Key Behaviors:
        * "Aesthetic Awareness"
        * "Literary Perspectives"
        * "Finance Electives"
-   - When a student asks to build a schedule, create a schedule, or plan their classes, use the buildStudentSchedule function
-     - This function creates an optimized conflict-free schedule based on the student's requirements and preferences
+   - When a student asks to build a schedule, create a schedule, or plan their classes:
+     - CRITICAL - YOU MUST OUTPUT THE SCHEDULE IN THIS EXACT FORMAT:
+       1. First, write a brief welcome message explaining that you're creating their schedule
+       2. Then output the JSON structure:
+          \`\`\`json
+          {
+            "sections": [
+              {
+                "section_id": "string",
+                "course_code": "string",
+                "course_title": "string",
+                "day_pattern": "TR",
+                "start_time": "08:00",
+                "end_time": "09:15",
+                "credits": 3,
+                "instructor": "string",
+                "location": "string"
+              }
+            ],
+            "total_credits": 15
+          }
+          \`\`\`
+       3. After the JSON block, write your detailed schedule description
+     - Use the buildStudentSchedule function
      - The function requires a term parameter (e.g., "Spring 2025")
-     - The function automatically considers the student's schedule preferences (like avoiding early morning classes)
-     - The function ensures there are no time conflicts between courses
+     - The function automatically considers student preferences
+     - The function ensures no time conflicts
      - The function prioritizes core requirements while respecting credit limits
    - Always analyze the query to determine if a function call is needed
    - Only use functions when they directly answer the student's question
@@ -169,7 +191,6 @@ Key Behaviors:
 7. When Presenting a Schedule:
    - Create a clear, visually organized schedule by day of the week
    - For each course, include:
-     * Course code and title
      * Meeting days and times
      * Location
      * Instructor (if available)
@@ -188,7 +209,7 @@ Remember to focus on answering the specific question asked and maintain context 
       ],
       tools: functionDefinitions,
       temperature: 0.3,
-      max_tokens: 1000
+      max_tokens: 4000
     })
 
     let finalResponse = response;
@@ -279,13 +300,33 @@ Key Behaviors:
      - If there are more courses available, mention this at the end (e.g., "Would you like to see more options?")
      - When showing additional courses, make it clear these are new options, not repeating previous ones
    - When presenting a schedule:
-     - Organize the schedule by day of the week in a clear, readable format
-     - Highlight the time and location of each class
-     - Explain how the schedule aligns with the student's preferences
-     - Point out any compromises that had to be made (e.g., early morning classes)
-     - Summarize the total credits and course distribution
-     - Explain any conflicts or issues that couldn't be resolved
-     - If there are explanations provided in the schedule, include them to help the student understand why certain sections were chosen
+     - CRITICAL - YOU MUST OUTPUT THE SCHEDULE IN THIS EXACT FORMAT:
+       1. First, write a brief welcome message explaining that you're creating their schedule
+       2. Then output the JSON structure:
+          \`\`\`json
+          {
+            "sections": [
+              {
+                "section_id": "string",
+                "course_code": "string",
+                "course_title": "string",
+                "day_pattern": "TR",
+                "start_time": "08:00",
+                "end_time": "09:15",
+                "credits": 3,
+                "instructor": "string",
+                "location": "string"
+              }
+            ],
+            "total_credits": 15
+          }
+          \`\`\`
+       3. After the JSON block, write your detailed schedule description
+     - Use the buildStudentSchedule function
+     - The function requires a term parameter (e.g., "Spring 2025")
+     - The function automatically considers student preferences
+     - The function ensures no time conflicts
+     - The function prioritizes core requirements while respecting credit limits
    - Provide relevant context and totals (like total credits completed, remaining, etc.)
    - If the results are extensive, provide a summary and highlight the most important information
    - For course recommendations, explain why these courses are recommended and how they fit into the student's program
@@ -339,7 +380,7 @@ Remember to focus on answering the specific question asked and maintain context 
           ...newMessages
         ],
         temperature: 0.3,
-        max_tokens: 1000
+        max_tokens: 4000
       });
       
       console.log('\n=== Second Response Generated After Function Call ===');

@@ -1,4 +1,4 @@
-import { buildOptimizedSchedule } from '@/app/lib/functions/optimizedScheduleBuilder';
+import { buildSimpleSchedule } from '@/app/lib/functions/simplifiedScheduleBuilder';
 import { NextRequest, NextResponse } from 'next/server';
 
 export async function POST(request: NextRequest) {
@@ -19,11 +19,11 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const schedule = await buildOptimizedSchedule(studentId, term);
+    const schedule = await buildSimpleSchedule(studentId, term);
 
     return NextResponse.json({ 
       schedule,
-      message: 'Schedule built successfully with optimized course selection and conflict resolution'
+      message: 'Schedule built successfully with simple course selection and conflict resolution'
     });
   } catch (error) {
     console.error('Error in schedule builder API:', error);

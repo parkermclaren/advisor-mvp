@@ -1,8 +1,8 @@
 import { maxProgress } from '../studentData';
 import { getCoursesByCategory } from './getCoursesByCategory';
-import { buildOptimizedSchedule } from './optimizedScheduleBuilder';
 import { getRecommendedCourses } from './recommendedCourses';
 import { getRemainingRequirements } from './remainingRequirements';
+import { buildSimpleSchedule } from './simplifiedScheduleBuilder';
 import { getCompletedCourses } from './studentCourses';
 
 // Define a type for the functions in our map
@@ -16,7 +16,7 @@ const functionMap: Record<string, FunctionType> = {
   getRemainingRequirements: getRemainingRequirements as FunctionType,
   getRecommendedCourses: getRecommendedCourses as FunctionType,
   getCoursesByCategory: getCoursesByCategory as FunctionType,
-  buildStudentSchedule: buildOptimizedSchedule as FunctionType
+  buildStudentSchedule: buildSimpleSchedule as FunctionType
 };
 
 /**
@@ -42,7 +42,7 @@ export async function executeFunction(functionName: string, args: Record<string,
         const studentId = (args.studentId as string) || maxProgress.student_summary.id;
         const term = (args.term as string) || 'Spring 2025'; // Default to Spring 2025 if not provided
         
-        console.log(`Executing optimized schedule builder for student ${studentId} and term ${term}`);
+        console.log(`Executing simple schedule builder for student ${studentId} and term ${term}`);
         return await functionMap[functionName](studentId, term);
       }
       
